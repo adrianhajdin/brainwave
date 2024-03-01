@@ -1,7 +1,7 @@
 <div align="center">
   <br />
     <a href="https://youtu.be/B91wc5dCEBA" target="_blank">
-      <img src="https://github.com/JavaScript-Mastery-Pro/brainwave/assets/151519281/8caaaacb-d8c0-4057-9fd0-027ff2fdf2ba" alt="Project Banner">
+      <img src="https://i.ibb.co/Kqdv8j1/Image-from.png" alt="Project Banner">
     </a>
   <br />
 
