@@ -22,7 +22,7 @@ const Pricing = () => {
               className="w-full"
               width={950}
               height={400}
-              alt="Stars"
+              alt="stars"
             />
           </div>
         </div>
