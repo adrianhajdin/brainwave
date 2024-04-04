@@ -3,16 +3,16 @@ const ButtonGradient = () => {
     <svg className="block" width={0} height={0}>
       <defs>
         <linearGradient id="btn-left" x1="50%" x2="50%" y1="0%" y2="100%">
-          <stop offset="0%" stopColor="#89F9E8" />
-          <stop offset="100%" stopColor="#FACB7B" />
+          <stop offset="0%" stopColor="#007FFF" />
+          <stop offset="100%" stopColor="#89F9E8" />
         </linearGradient>
         <linearGradient id="btn-top" x1="100%" x2="0%" y1="50%" y2="50%">
-          <stop offset="0%" stopColor="#D87CEE" />
-          <stop offset="100%" stopColor="#FACB7B" />
+          <stop offset="0%" stopColor="#007FFF" />
+          <stop offset="100%" stopColor="#89F9E8" />
         </linearGradient>
         <linearGradient id="btn-bottom" x1="100%" x2="0%" y1="50%" y2="50%">
-          <stop offset="0%" stopColor="#9099FC" />
-          <stop offset="100%" stopColor="#89F9E8" />
+          <stop offset="0%" stopColor="#89F9E8" />
+          <stop offset="100%" stopColor="#007FFF" />
         </linearGradient>
         <linearGradient
           id="btn-right"
@@ -21,8 +21,8 @@ const ButtonGradient = () => {
           y1="0%"
           y2="100%"
         >
-          <stop offset="0%" stopColor="#9099FC" />
-          <stop offset="100%" stopColor="#D87CEE" />
+          <stop offset="0%" stopColor="#89F9E8" />
+          <stop offset="100%" stopColor="#007FFF" />
         </linearGradient>
       </defs>
     </svg>

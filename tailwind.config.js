@@ -8,28 +8,28 @@ export default {
     extend: {
       colors: {
         color: {
-          1: "#AC6AFF",
-          2: "#FFC876",
-          3: "#FF776F",
-          4: "#7ADB78",
+          1: "#007FFF",
+          2: "#3c53b3",
+          3: "#FFFFFF",
+          4: "#91c9fc",
           5: "#858DFF",
-          6: "#FF98E2",
+          6: "#285cbc",
         },
         stroke: {
           1: "#26242C",
         },
         n: {
           1: "#FFFFFF",
-          2: "#CAC6DD",
+          2: "#FFFFFF",
           3: "#ADA8C3",
           4: "#757185",
           5: "#3F3A52",
-          6: "#252134",
+          6: "#007FFF",
           7: "#15131D",
           8: "#0E0C15",
           9: "#474060",
           10: "#43435C",
-          11: "#1B1B2E",
+          11: "#007FFF",
           12: "#2E2A41",
           13: "#6C7275",
         },
@@ -69,7 +69,7 @@ export default {
       backgroundImage: {
         "radial-gradient": "radial-gradient(var(--tw-gradient-stops))",
         "conic-gradient":
-          "conic-gradient(from 225deg, #FFC876, #79FFF7, #9F53FF, #FF98E2, #FFC876)",
+          "conic-gradient(from 225deg, #007FFF, #FFFFFF, #285cbc, #FFFFFF, #3c53b3)",
       },
     },
   },
