@@ -4,9 +4,8 @@ import { notificationImages } from "../constants";
 const Notification = ({ className, title }) => {
   return (
     <div
-      className={`${
-        className || ""
-      } flex items-center p-4 pr-6 bg-n-9/40 backdrop-blur border border-n-1/10 rounded-2xl gap-5`}
+      className={`${className || ""
+        } flex items-center p-4 pr-6 bg-n-9/40 backdrop-blur border border-n-1/10 rounded-2xl gap-5`}
     >
       <img
         src={notification1}
@@ -36,7 +35,7 @@ const Notification = ({ className, title }) => {
               </li>
             ))}
           </ul>
-          <div className="body-2 text-n-13">1m ago</div>
+          <div className="body-2 text-n-13">Agents</div>
         </div>
       </div>
     </div>
