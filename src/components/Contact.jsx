@@ -176,7 +176,7 @@ const Contact = () => {
                             />
                             {errors.message && (
                                 <span className="text-color-5 text-sm">
-                                    The message can't be empty. Please, don't be shy!
+                                    The message can't be empty. Please, say anything!
                                 </span>
                             )}
                         </div>
@@ -192,6 +192,12 @@ const Contact = () => {
                             You can also email to{" "}
                             <a href="mailto:contact@videface.app" className="text-blue-500">
                                 contact@videface.app
+                            </a>
+                        </p>
+                        <p className="text-sm text-center mt-1">
+                            Or give us a call: {" "}
+                            <a href="mailto:contact@videface.app" className="text-blue-500">
+                                +1 407 558 6889
                             </a>
                         </p>
                     </form>

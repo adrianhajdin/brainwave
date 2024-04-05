@@ -53,11 +53,14 @@ const Hero = () => {
           </Button>
         </div>
         <div className="relative max-w-[23rem] mx-auto md:max-w-5xl xl:mb-24">
-          <div className="relative z-1 p-0.5 rounded-2xl bg-conic-gradient">
+          <div className="relative z-1 p-0.5 rounded-2xl bg-conic-black">
             <div className="relative bg-n-1 rounded-[1rem]">
               <div className="h-[1.4rem] bg-n-1 rounded-t-[0.9rem]" />
 
               <div className="aspect-[33/40] rounded-b-[0.9rem] overflow-hidden md:aspect-[688/490] lg:aspect-[1024/490]">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-black text-4xl">Welcome.</p>
+                </div>
                 <LazyLoad>
                   <div className="absolute inset-2 border">
                     <video
@@ -71,7 +74,6 @@ const Hero = () => {
                     />
                   </div>
                 </LazyLoad>
-
                 <Generating className="absolute left-4 right-4 bottom-5 md:left-1/2 md:right-auto md:bottom-8 md:w-[31rem] md:-translate-x-1/2" />
 
                 <ScrollParallax isAbsolutelyPositioned>
