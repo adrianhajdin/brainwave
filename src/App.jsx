@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Pricing from "./components/Pricing";
 import Roadmap from "./components/Roadmap";
+import Contact from "./components/Contact";
 import Services from "./components/Services";
 
 const App = () => {
@@ -18,6 +19,9 @@ const App = () => {
         <Collaboration />
         <Services />
         <Pricing />
+        <div id="contact">
+          <Contact />
+        </div>
         <Footer />
       </div>
 

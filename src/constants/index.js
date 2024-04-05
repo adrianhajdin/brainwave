@@ -39,7 +39,10 @@ import {
   slack,
   sliders04,
   telegram,
-  twitter,
+  companyLogo1,
+  companyLogo2,
+  companyLogo3,
+  companyLogo4,
   yourlogo,
 } from "../assets";
 
@@ -82,7 +85,7 @@ export const heroIcons = [homeSmile, file02, searchMd, plusSquare];
 
 export const notificationImages = [notification4, notification3, notification2];
 
-export const companyLogos = [yourlogo, yourlogo, yourlogo, yourlogo, yourlogo];
+export const companyLogos = [companyLogo1, companyLogo2, companyLogo3, companyLogo4, yourlogo];
 
 export const brainwaveServices = [
   "Location is not a problem",

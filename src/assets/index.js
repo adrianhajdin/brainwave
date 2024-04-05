@@ -8,7 +8,11 @@ import smallSphere from "./4-small.png";
 import grid from "./grid.png";
 import check2 from "./check-02.svg";
 import loading1 from "./loading-01.svg";
-import yourlogo from "./yourlogo.svg";
+import companyLogo1 from "./logo01.png";
+import companyLogo2 from "./logo02.png";
+import companyLogo3 from "./logo03.png";
+import companyLogo4 from "./logo04.png";
+import yourlogo from "./logo05.png";
 import homeSmile from "./home-smile.png";
 import file02 from "./file-02.png";
 import searchMd from "./search-md.png";
@@ -94,6 +98,10 @@ export {
   gradient,
   smallSphere,
   grid,
+  companyLogo1,
+  companyLogo2,
+  companyLogo3,
+  companyLogo4,
   yourlogo,
   homeSmile,
   file02,
