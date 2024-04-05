@@ -15,7 +15,7 @@ import searchMd from "./search-md.png";
 import plusSquare from "./plus-square.png";
 import recording03 from "./recording-03.svg";
 import recording01 from "./recording-01.svg";
-import disc02 from "./disc-02.svg";
+import disc02 from "./plus-square.png";
 import chromecast from "./chrome-cast.svg";
 import sliders04 from "./sliders-04.svg";
 import loading from "./loading.png";
@@ -27,10 +27,11 @@ import heroBackground from "./hero/hero-background.webp";
 
 import curve1 from "./collaboration/curve-1.svg";
 import curve2 from "./collaboration/curve-2.svg";
-import discord from "./collaboration/discord.png";
-import figma from "./collaboration/figma.png";
+
+import discord from "./collaboration/discord.svg";
+import figma from "./collaboration/figma.svg";
 import framer from "./collaboration/framer.png";
-import notion from "./collaboration/notion.png";
+import notion from "./collaboration/notion.svg";
 import photoshop from "./collaboration/photoshop.png";
 import protopie from "./collaboration/protopie.png";
 import raindrop from "./collaboration/raindrop.png";

@@ -8,28 +8,45 @@ const PricingList = () => {
       {pricing.map((item) => (
         <div
           key={item.id}
-          className="w-[19rem] max-lg:w-full h-full px-6 bg-n-8 border border-n-6 rounded-[2rem] lg:w-auto even:py-14 odd:py-8 odd:my-4 [&>h4]:first:text-color-2 [&>h4]:even:text-color-1 [&>h4]:last:text-color-3"
+          className="w-[19rem] max-lg:w-full h-full px-6 bg-n-8 border border-n-6 rounded-[2rem] lg:w-auto even:py-14 odd:py-8 odd:my-4 [&>h4]:first:text-color-4 [&>h4]:even:text-color-1 [&>h4]:last:text-color-5"
         >
           <h4 className="h4 mb-4">{item.title}</h4>
 
-          <p className="body-2 min-h-[4rem] mb-3 text-n-1/50">
+          <p className="body-3 min-h-[4rem] text-n-1">
             {item.description}
           </p>
 
-          <div className="flex items-center h-[5.5rem] mb-6">
-            {item.price && (
+          <div className="flex items-center h-[1.5rem] mb-8">
+            {item.price1 && (
               <>
-                <div className="h3">$</div>
-                <div className="text-[5.5rem] leading-none font-bold">
-                  {item.price}
+                <div className="text-[2rem] leading-none font-bold">
+                  {item.price1}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex items-center h-[1.5rem] mb-8">
+            {item.price2 && (
+              <>
+                <div className="text-[2rem] leading-none font-bold">
+                  {item.price2}
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex items-center h-[1.5rem] mb-2">
+            {item.price3 && (
+              <>
+                <div className="text-[2rem] leading-none font-bold">
+                  {item.price3}
                 </div>
               </>
             )}
           </div>
 
           <Button
-            className="w-full mb-6"
-            href={item.price ? "/pricing" : "mailto:contact@jsmastery.pro"}
+            className="w-full mb-6 mt-8"
+            href={item.price ? "/pricing" : "#contact"}
             white={!!item.price}
           >
             {item.price ? "Get started" : "Contact us"}

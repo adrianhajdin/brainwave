@@ -85,9 +85,9 @@ export const notificationImages = [notification4, notification3, notification2];
 export const companyLogos = [yourlogo, yourlogo, yourlogo, yourlogo, yourlogo];
 
 export const brainwaveServices = [
-  "Photo generating",
-  "Photo enhance",
-  "Seamless Integration",
+  "Location is not a problem",
+  "24/7 assistance gets easier",
+  "Absolute game changer",
 ];
 
 export const brainwaveServicesIcons = [
@@ -135,21 +135,21 @@ export const roadmap = [
 ];
 
 export const collabText =
-  "With smart automation and top-notch security, it's the perfect solution for teams looking to work smarter.";
+  "Humans will always be needed in the sales and customer service industry. We're just here to make their lives easier.";
 
 export const collabContent = [
   {
     id: "0",
-    title: "Seamless Integration",
-    text: collabText,
+    title: "Have an advantage in the market",
+    text: "As we move towards a more automated world, VideFace will set your company on top of the competition.",
   },
   {
     id: "1",
-    title: "Smart Automation",
+    title: "Increase your customer satisfaction",
   },
   {
     id: "2",
-    title: "Top-notch Security",
+    title: "Better work environment for your team",
   },
 ];
 
@@ -158,14 +158,14 @@ export const collabApps = [
     id: "0",
     title: "Figma",
     icon: figma,
-    width: 26,
-    height: 36,
+    width: 38,
+    height: 38,
   },
   {
     id: "1",
     title: "Notion",
     icon: notion,
-    width: 34,
+    width: 36,
     height: 36,
   },
   {
@@ -200,8 +200,8 @@ export const collabApps = [
     id: "6",
     title: "Framer",
     icon: framer,
-    width: 26,
-    height: 34,
+    width: 36,
+    height: 36,
   },
   {
     id: "7",
@@ -215,35 +215,41 @@ export const collabApps = [
 export const pricing = [
   {
     id: "0",
-    title: "Basic",
-    description: "AI chatbot, personalized recommendations",
-    price: "0",
+    title: "VideFace Calls",
+    description: "Monthly prices per office",
+    price1: "2 Kiosks: $499",
+    price2: "3 Kiosks: $599",
+    price3: "Extra: $50 each",
     features: [
-      "An AI chatbot that can understand your queries",
-      "Personalized recommendations based on your preferences",
-      "Ability to explore the app and its features without any cost",
+      "Every kiosk includes one user (agent, admin or both)",
+      "For each extra user you will pay $25 more per month",
+      "Initial fee of $499 per office + extra costs (if needed)",
     ],
   },
   {
     id: "1",
-    title: "Premium",
-    description: "Advanced AI chatbot, priority support, analytics dashboard",
-    price: "9.99",
+    title: "Full VideFace",
+    description: "VideFace Calls + VideFace Cars and more!",
+    price1: "Previous prices",
+    price2: "Get the new features",
+    price3: "Avoid car's initial fee",
     features: [
-      "An advanced AI chatbot that can understand complex queries",
-      "An analytics dashboard to track your conversations",
+      "Get first the new features we constantly add to our software",
+      "It's easier to manage everything in one place. Definitely worth it!",
       "Priority support to solve issues quickly",
     ],
   },
   {
     id: "2",
-    title: "Enterprise",
-    description: "Custom AI chatbot, advanced analytics, dedicated account",
-    price: null,
+    title: "VideFace Cars",
+    description: "Monthly prices for all cars",
+    price1: "200 Cars: $149",
+    price2: "300 Cars: $175",
+    price3: "Every 100+ for $10",
     features: [
-      "An AI chatbot that can understand your queries",
-      "Personalized recommendations based on your preferences",
-      "Ability to explore the app and its features without any cost",
+      "Full control of your cars, damages, photos and more",
+      "Car Inspection Service included in this plan",
+      "One global initial fee of $499 for all your cars",
     ],
   },
 ];
@@ -303,33 +309,22 @@ export const benefits = [
 
 export const socials = [
   {
-    id: "0",
-    title: "Discord",
-    iconUrl: discordBlack,
-    url: "#",
-  },
-  {
     id: "1",
-    title: "Twitter",
-    iconUrl: twitter,
-    url: "#",
+    title: "Instagram",
+    iconUrl: instagram,
+    url: "https://www.instagram.com/videface.app/",
   },
   {
     id: "2",
-    title: "Instagram",
-    iconUrl: instagram,
-    url: "#",
+    title: "LinkedIn",
+    iconUrl: facebook,
+    url: "https://www.linkedin.com/company/videface/",
   },
   {
     id: "3",
-    title: "Telegram",
+    title: "Mail",
     iconUrl: telegram,
-    url: "#",
+    url: "mailto:contact@videface.app",
   },
-  {
-    id: "4",
-    title: "Facebook",
-    iconUrl: facebook,
-    url: "#",
-  },
+
 ];

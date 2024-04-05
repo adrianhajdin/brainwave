@@ -28,8 +28,8 @@ const Pricing = () => {
         </div>
 
         <Heading
-          tag="Get started with Brainwave"
-          title="Pay once, use forever"
+          tag="Get started with VideFace"
+          title="Pricing plan that fits your needs"
         />
 
         <div className="relative">
@@ -40,10 +40,9 @@ const Pricing = () => {
 
         <div className="flex justify-center mt-10">
           <a
-            className="text-xs font-code font-bold tracking-wider uppercase border-b"
-            href="/pricing"
+            className="text-s font-code font-bold tracking-wider uppercase border-b"
           >
-            See the full details
+            More features and plans will be available soon! This is just the beginning.
           </a>
         </div>
       </div>
