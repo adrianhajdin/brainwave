@@ -201,7 +201,7 @@ const Contact = () => {
                             </a>
                         </p>
                     </form>
-                    <div className="absolute -top-[54%] left-1/2 w-[234%] -translate-x-1/2 md:-top-[50%] md:w-[95%] lg:-top-[12%] opacity-15 " style={{ zIndex: -1 }}>
+                    <div className="absolute -top-[54%] left-1/2 w-[234%] -translate-x-1/2 md:-top-[50%] md:w-[95%] lg:-top-[12%] opacity-25 " style={{ zIndex: -1 }}>
                         <img
                             src={gradient}
                             className="w-full"
