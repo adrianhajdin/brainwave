@@ -196,7 +196,7 @@ const Contact = () => {
                         </p>
                         <p className="text-sm text-center mt-1">
                             Or give us a call: {" "}
-                            <a href="mailto:contact@videface.app" className="text-blue-500">
+                            <a href="tel:+14075586889" className="text-blue-500">
                                 +1 407 558 6889
                             </a>
                         </p>
