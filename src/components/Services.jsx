@@ -1,6 +1,6 @@
 import Section from "./Section";
 import Heading from "./Heading";
-import { service1, service2, service3, check, smallSphere, stars } from "../assets";
+import { service1, service2, service3, check } from "../assets";
 import { brainwaveServices, brainwaveServicesIcons } from "../constants";
 import {
   PhotoChatMessage,
@@ -118,24 +118,6 @@ const Services = () => {
           </div>
 
           <Gradient />
-        </div>
-      </div>
-      <div className="hidden relative justify-center lg:flex pt-20 mt-20">
-        <img
-          src={smallSphere}
-          className="relative z-1"
-          width={255}
-          height={255}
-          alt="Sphere"
-        />
-        <div className="absolute top-1/2 left-1/2 w-[60rem] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <img
-            src={stars}
-            className="w-full"
-            width={950}
-            height={400}
-            alt="Stars"
-          />
         </div>
       </div>
     </Section>

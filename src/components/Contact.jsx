@@ -201,7 +201,7 @@ const Contact = () => {
                             className="w-full"
                             width={1440}
                             height={1800}
-                            alt="hero"
+                            alt="contact gradient background"
                         />
                     </div>
                 </div>

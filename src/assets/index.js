@@ -4,7 +4,6 @@ import brainwaveSymbol from "./brainwave-symbol.svg";
 import brainwaveWhiteSymbol from "./brainwave-symbol-white.svg";
 import play from "./play.svg";
 import gradient from "./gradient.png";
-import smallSphere from "./4-small.png";
 import grid from "./grid.png";
 import check2 from "./check-02.svg";
 import loading1 from "./loading-01.svg";
@@ -41,9 +40,9 @@ import protopie from "./collaboration/protopie.png";
 import raindrop from "./collaboration/raindrop.png";
 import slack from "./collaboration/slack.png";
 
-import service1 from "./services/service-1.png";
-import service2 from "./services/service-2.png";
-import service3 from "./services/service-3.png";
+import service1 from "./services/service-1.webp";
+import service2 from "./services/service-2.webp";
+import service3 from "./services/service-3.webp";
 
 import lines from "./pricing/lines.svg";
 import stars from "./pricing/stars.svg";
@@ -62,12 +61,12 @@ import notification2 from "./notification/image-2.png";
 import notification3 from "./notification/image-3.png";
 import notification4 from "./notification/image-4.png";
 
-import benefitCard1 from "./benefits/card-1.svg";
-import benefitCard2 from "./benefits/card-2.svg";
-import benefitCard3 from "./benefits/card-3.svg";
-import benefitCard4 from "./benefits/card-4.svg";
-import benefitCard5 from "./benefits/card-5.svg";
-import benefitCard6 from "./benefits/card-6.svg";
+import benefitCard1 from "./benefits/card-1.png";
+import benefitCard2 from "./benefits/card-2.png";
+import benefitCard3 from "./benefits/card-3.png";
+import benefitCard4 from "./benefits/card-4.png";
+import benefitCard5 from "./benefits/card-5.png";
+import benefitCard6 from "./benefits/card-6.png";
 import benefitIcon1 from "./benefits/icon-1.svg";
 import benefitIcon2 from "./benefits/icon-2.svg";
 import benefitIcon3 from "./benefits/icon-3.svg";
@@ -96,7 +95,6 @@ export {
   brainwaveWhiteSymbol,
   play,
   gradient,
-  smallSphere,
   grid,
   companyLogo1,
   companyLogo2,

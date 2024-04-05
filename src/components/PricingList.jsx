@@ -19,7 +19,7 @@ const PricingList = () => {
           <div className="flex items-center h-[1.5rem] mb-8">
             {item.price1 && (
               <>
-                <div className="text-[2rem] leading-none font-bold">
+                <div className="text-[1.8rem] leading-none font-bold">
                   {item.price1}
                 </div>
               </>
@@ -28,7 +28,7 @@ const PricingList = () => {
           <div className="flex items-center h-[1.5rem] mb-8">
             {item.price2 && (
               <>
-                <div className="text-[2rem] leading-none font-bold">
+                <div className="text-[1.8rem] leading-none font-bold">
                   {item.price2}
                 </div>
               </>
@@ -37,7 +37,7 @@ const PricingList = () => {
           <div className="flex items-center h-[1.5rem] mb-2">
             {item.price3 && (
               <>
-                <div className="text-[2rem] leading-none font-bold">
+                <div className="text-[1.8rem] leading-none font-bold">
                   {item.price3}
                 </div>
               </>

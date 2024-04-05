@@ -1,4 +1,4 @@
-import { curve, gradient, heroBackground, robot } from "../assets";
+import { curve, gradient, robot } from "../assets";
 import Button from "./Button";
 import Section from "./Section";
 import { BackgroundCircles, BottomLine, Gradient } from "./design/Hero";
@@ -8,6 +8,7 @@ import { useRef } from "react";
 import Generating from "./Generating";
 import Notification from "./Notification";
 import CompanyLogos from "./CompanyLogos";
+import LazyLoad from "react-lazy-load";
 
 const Hero = () => {
   const parallaxRef = useRef(null);
@@ -22,27 +23,28 @@ const Hero = () => {
     >
       <div className="container relative" ref={parallaxRef}>
         <div className="relative z-1 max-w-[62rem] mx-auto text-center mb-[3.875rem] md:mb-20 lg:mb-[6.25rem]">
-          <h1 className="h1 mb-6">
-            Explore the Revolution of&nbsp;Virtual&nbsp;Assistance with {` `}
-            <span className="inline-block relative">
-              <span
-                style={{
-                  background: "linear-gradient(180deg, white, white, white, #007FFF, #007FFF )",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                VideFace
-              </span>{" "}
-              <img
-                src={curve}
-                className="absolute top-full left-0 w-full xl:-mt-2"
-                width={624}
-                height={28}
-                alt="Curve"
-              />
-            </span>
+          <h1 className="h2 mb-2">
+            Explore the Revolution of Virtual Assistance: {` `}
           </h1>
+          <span className="inline-block relative h1 mb-12">
+            <span
+              style={{
+                background: "white",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "white",
+                WebkitTextStroke: "1px white",
+              }}
+            >
+              VideFace
+            </span>{" "}
+            <img
+              src={curve}
+              className="absolute top-full left-0 w-full xl:-mt-1"
+              width={624}
+              height={28}
+              alt="Curve"
+            />
+          </span>
           <p className="body-1 max-w-3xl mx-auto mb-6 text-n-2 lg:mb-8">
             Seamless experience that gives all the advantages <strong>of remote assistance, vehicle inspections and key management.</strong>
           </p>
@@ -56,14 +58,19 @@ const Hero = () => {
               <div className="h-[1.4rem] bg-n-1 rounded-t-[0.9rem]" />
 
               <div className="aspect-[33/40] rounded-b-[0.9rem] overflow-hidden md:aspect-[688/490] lg:aspect-[1024/490]">
-                <video
-                  src={robot}
-                  className="w-full h-full object-cover"
-                  alt="AI"
-                  autoPlay
-                  loop
-                  muted
-                />
+                <LazyLoad>
+                  <div className="absolute inset-2 border">
+                    <video
+                      src={robot}
+                      className="w-full h-full object-cover object-center"
+                      alt="AI"
+                      autoPlay
+                      loop
+                      muted
+                      preload="auto"
+                    />
+                  </div>
+                </LazyLoad>
 
                 <Generating className="absolute left-4 right-4 bottom-5 md:left-1/2 md:right-auto md:bottom-8 md:w-[31rem] md:-translate-x-1/2" />
 
