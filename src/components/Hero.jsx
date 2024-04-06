@@ -31,8 +31,8 @@ const Hero = () => {
               style={{
                 background: "white",
                 WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "white",
-                WebkitTextStroke: "1px white",
+                WebkitTextFillColor: "#007FFF",
+                WebkitTextStroke: "1px #007FFF",
               }}
             >
               VideFace
@@ -46,7 +46,7 @@ const Hero = () => {
             />
           </span>
           <p className="body-1 max-w-3xl mx-auto mb-6 text-n-2 lg:mb-8">
-            Seamless experience that gives all the advantages <strong>of remote assistance, vehicle inspections and key management.</strong>
+            Seamless experience that gives all the advantages <strong>of remote assistance, vehicle inspections, keys management and more.</strong>
           </p>
           <Button href="#pricing" white>
             Get started

@@ -5,7 +5,6 @@ import Heading from "./Heading";
 import Section from "./Section";
 import { gradient } from "../assets";
 import { BackgroundCircles } from "./design/Hero";
-import { HashLink as Link } from 'react-router-hash-link';
 
 const Contact = () => {
     const formRef = useRef();

@@ -8,7 +8,7 @@ const Pricing = () => {
     <Section className="overflow-hidden" id="pricing">
       <div className="container relative z-2">
         <Heading
-          tag="Get started with VideFace"
+          tag="Get started"
           title="Pricing plan that fits your needs"
         />
 
