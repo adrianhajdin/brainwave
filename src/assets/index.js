@@ -23,6 +23,8 @@ import chromecast from "./chrome-cast.svg";
 import sliders04 from "./sliders-04.svg";
 import loading from "./loading.png";
 import background from "./background.webp";
+import lightmode from "./lightmode.svg";
+import darkmode from "./darkmode.svg";
 
 import curve from "./hero/curve.png";
 import robot from "./hero/robot.webm";
@@ -40,7 +42,8 @@ import protopie from "./collaboration/protopie.png";
 import raindrop from "./collaboration/raindrop.png";
 import slack from "./collaboration/slack.png";
 
-import service1 from "./services/service-1.webp";
+import service1 from "./services/service-1.png";
+import service1mobile from "./services/service-1-mobile.png";
 import service2 from "./services/service-2.webp";
 import service3 from "./services/service-3.webp";
 
@@ -126,6 +129,7 @@ export {
   raindrop,
   slack,
   service1,
+  service1mobile,
   service2,
   service3,
   lines,
@@ -165,4 +169,6 @@ export {
   instagram,
   telegram,
   twitter,
+  lightmode,
+  darkmode,
 };

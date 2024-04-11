@@ -16,7 +16,7 @@ const Footer = () => {
               key={item.id}
               href={item.url}
               target="_blank"
-              className="flex items-center justify-center w-10 h-10 bg-n-12 rounded-full transition-colors hover:bg-n-8"
+              className="flex items-center justify-center w-10 h-10 bg-n-12 rounded-full transition-colors hover:bg-n-4"
             >
               <img src={item.iconUrl} width={16} height={16} alt={item.title} />
             </a>

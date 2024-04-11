@@ -162,15 +162,15 @@ export const collabApps = [
   },
   {
     id: "2",
-    title: "Discord",
-    icon: discord,
+    title: "Raindrop",
+    icon: raindrop,
     width: 36,
     height: 28,
   },
   {
     id: "3",
-    title: "Slack",
-    icon: slack,
+    title: "Framer",
+    icon: framer,
     width: 34,
     height: 35,
   },
@@ -190,15 +190,15 @@ export const collabApps = [
   },
   {
     id: "6",
-    title: "Framer",
-    icon: framer,
+    title: "Slack",
+    icon: slack,
     width: 36,
     height: 36,
   },
   {
     id: "7",
-    title: "Raindrop",
-    icon: raindrop,
+    title: "Discord",
+    icon: discord,
     width: 38,
     height: 32,
   },
@@ -254,6 +254,7 @@ export const benefits = [
     backgroundUrl: benefitCard1,
     iconUrl: benefitIcon1,
     imageUrl: benefitImage1,
+    light: true,
   },
   {
     id: "1",
@@ -271,6 +272,7 @@ export const benefits = [
     backgroundUrl: benefitCard3,
     iconUrl: benefitIcon3,
     imageUrl: benefitImage3,
+    light: true,
   },
   {
     id: "3",
@@ -288,6 +290,7 @@ export const benefits = [
     backgroundUrl: benefitCard5,
     iconUrl: benefitIcon5,
     imageUrl: benefitImage5,
+    light: true,
   },
   {
     id: "5",
@@ -296,6 +299,7 @@ export const benefits = [
     backgroundUrl: benefitCard6,
     iconUrl: benefitIcon6,
     imageUrl: benefitImage6,
+    light: true,
   },
 ];
 
