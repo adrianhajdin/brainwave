@@ -16,6 +16,7 @@ import homeSmile from "./home-smile.png";
 import file02 from "./file-02.png";
 import searchMd from "./search-md.png";
 import plusSquare from "./plus-square.png";
+import plusSquareWhite from "./plus-square-white.png";
 import recording03 from "./recording-03.svg";
 import recording01 from "./recording-01.svg";
 import disc02 from "./plus-square.png";
@@ -42,8 +43,8 @@ import protopie from "./collaboration/protopie.png";
 import raindrop from "./collaboration/raindrop.png";
 import slack from "./collaboration/slack.png";
 
-import service1 from "./services/service-1.png";
-import service1mobile from "./services/service-1-mobile.png";
+import service1 from "./services/service-1.webp";
+import service1mobile from "./services/service-1-mobile.webp";
 import service2 from "./services/service-2.webp";
 import service3 from "./services/service-3.webp";
 
@@ -108,6 +109,7 @@ export {
   file02,
   searchMd,
   plusSquare,
+  plusSquareWhite,
   recording03,
   recording01,
   disc02,

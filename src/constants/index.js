@@ -26,7 +26,7 @@ import {
   notification4,
   notion,
   photoshop,
-  plusSquare,
+  plusSquareWhite,
   protopie,
   raindrop,
   recording01,
@@ -70,7 +70,7 @@ export const navigation = [
   },
 ];
 
-export const heroIcons = [homeSmile, file02, searchMd, plusSquare];
+export const heroIcons = [homeSmile, file02, searchMd, plusSquareWhite];
 
 export const notificationImages = [notification4, notification3, notification2];
 
