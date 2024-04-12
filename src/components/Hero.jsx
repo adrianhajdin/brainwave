@@ -1,17 +1,31 @@
-import { curve, gradient, robot } from "../assets";
+import { curve, gradient } from "../assets";
 import Button from "./Button";
 import Section from "./Section";
 import { BackgroundCircles, BottomLine, Gradient } from "./design/Hero";
 import { heroIcons } from "../constants";
-import { ScrollParallax } from "react-just-parallax";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Generating from "./Generating";
 import Notification from "./Notification";
 import CompanyLogos from "./CompanyLogos";
 import LazyLoad from "react-lazy-load";
+import ReactPlayer from "react-player";
 
 const Hero = () => {
   const parallaxRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showGenerating, setShowGenerating] = useState(true);
+
+  const handlePlayerPlay = () => {
+    setIsPlaying(true);
+    setTimeout(() => {
+      setShowGenerating(false);
+    }, 750);
+  };
+
+  const handlePlayerPause = () => {
+    setIsPlaying(false);
+    setShowGenerating(true);
+  };
 
   return (
     <Section
@@ -62,36 +76,40 @@ const Hero = () => {
                   <p className="text-black text-4xl">Welcome.</p>
                 </div>
                 <LazyLoad>
-                  <div className="absolute inset-2 border">
-                    <video
-                      src={robot}
-                      className="w-full h-full object-cover object-center"
-                      alt="AI"
-                      autoPlay
-                      loop
-                      muted
-                      preload="auto"
+                  <div className={`absolute inset-2 border z-1`}>
+                    <ReactPlayer
+                      url={"https://www.youtube.com/watch?v=3rgVNI_2uuM"}
+                      width="100%"
+                      height="100%"
+                      controls={true}
+                      className="rounded-2xl"
+                      onPlay={handlePlayerPlay}
+                      onPause={handlePlayerPause}
                     />
                   </div>
                 </LazyLoad>
-                <Generating className="absolute left-4 right-4 bottom-5 md:left-1/2 md:right-auto md:bottom-8 md:w-[31rem] md:-translate-x-1/2" />
-
-                <ScrollParallax isAbsolutelyPositioned>
-                  <ul className="hidden absolute -left-[5.5rem] bottom-[7.5rem] px-1 py-1 bg-n-9/40 backdrop-blur border border-n-1/10 rounded-2xl xl:flex">
-                    {heroIcons.map((icon, index) => (
-                      <li className="p-5" key={index}>
-                        <img src={icon} width={24} height={25} alt={icon} />
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollParallax>
-
-                <ScrollParallax isAbsolutelyPositioned>
-                  <Notification
-                    className="hidden absolute -right-[5.5rem] bottom-[11rem] w-[18rem] xl:flex"
-                    title="How can I help you?"
+                {showGenerating && (
+                  <Generating
+                    className={`z-1 absolute left-4 right-4 bottom-5 md:left-1/2 md:right-auto md:bottom-8 md:w-[31rem] md:-translate-x-1/2 transition-opacity ${isPlaying ? "opacity-0" : "opacity-100"
+                      }`}
                   />
-                </ScrollParallax>
+                )}
+                <ul
+                  className={`z-1 hidden absolute -left-[5.5rem] bottom-[7.5rem] px-1 py-1 bg-n-9/40 backdrop-blur border border-n-1/10 rounded-2xl xl:flex transition-opacity ${isPlaying ? "opacity-0" : "opacity-100"
+                    }`}
+                >
+                  {heroIcons.map((icon, index) => (
+                    <li className="p-5" key={index}>
+                      <img src={icon} width={24} height={25} alt={icon} />
+                    </li>
+                  ))}
+                </ul>
+
+                <Notification
+                  className={`z-1 hidden absolute -right-[5.5rem] bottom-[11rem] w-[18rem] xl:flex transition-opacity ${isPlaying ? "opacity-0 z-0" : "opacity-100 z-1"
+                    }`}
+                  title="How can I help you?"
+                />
               </div>
             </div>
 
