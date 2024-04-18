@@ -210,8 +210,8 @@ export const pricing = [
     title: "VideFace Calls",
     description: "Monthly prices per office.",
     price1: "2 Kiosks $499",
-    price2: "3 Kiosks $599",
-    price3: "Extra: $50 each",
+    price2: "3 Kiosks $699",
+    price3: "Extra: $100 each",
     features: [
       "Every kiosk includes one user (agent, admin or both)",
       "For each extra user you will pay $25 more per month",
@@ -235,8 +235,8 @@ export const pricing = [
     id: "2",
     title: "VideFace Cars",
     description: "Monthly prices for all cars.",
-    price1: "200 Cars $99",
-    price2: "300 Cars $149",
+    price1: "200 Cars $199",
+    price2: "300 Cars $249",
     price3: "Every 100+ for $10",
     features: [
       "Full control of your cars, damages, photos and more",
