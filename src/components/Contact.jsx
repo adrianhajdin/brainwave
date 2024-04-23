@@ -24,9 +24,9 @@ const Contact = () => {
         message: false,
     });
 
-    const serviceId = "service_533en9n";
-    const templateId = "template_iaw1tzn";
-    const publicKey = "MT8ojo1DMmh4mO2x6";
+    const serviceId = import.meta.env.VITE_SERVICE_ID;
+    const templateId = import.meta.env.VITE_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_PUBLIC_KEY;
 
     const handleChange = (e) => {
         const { id, value } = e.target;
@@ -93,7 +93,7 @@ const Contact = () => {
             );
     };
 
-    const isMobile = window.innerWidth <= 768; // Set the breakpoint for mobile devices
+    const isMobile = window.innerWidth <= 768;
 
     return (
         <Section crosses>

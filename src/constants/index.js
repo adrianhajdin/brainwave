@@ -237,7 +237,7 @@ export const pricing = [
     description: "Monthly prices for all cars.",
     price1: "200 Cars $199",
     price2: "300 Cars $249",
-    price3: "Every 100+ for $10",
+    price3: "Every 100+ for $25",
     features: [
       "Full control of your cars, damages, photos and more",
       "Car Inspection Service included in this plan",
