@@ -1,33 +1,16 @@
-import ButtonGradient from "./assets/svg/ButtonGradient";
-import Benefits from "./components/Benefits";
-import Collaboration from "./components/Collaboration";
-import Footer from "./components/Footer";
-import Header from "./components/Header";
-import Hero from "./components/Hero";
-import Pricing from "./components/Pricing";
-import Roadmap from "./components/Roadmap";
-import Contact from "./components/Contact";
-import Services from "./components/Services";
+import { Route, Routes } from "react-router-dom";
+import Home from "./components/pages/Home";
+import Products from "./components/pages/Products";
 
 const App = () => {
-  return (
-    <>
-      <div className="pt-[4.75rem] lg:pt-[5.25rem] overflow-hidden">
-        <Header />
-        <Hero />
-        <Benefits />
-        <Collaboration />
-        <Services />
-        <Pricing />
-        <div id="contact">
-          <Contact />
+    return (
+        <div className=" h-[100dvh] w-[100vw] font-primary bg-pageMainBackground">
+            <Routes>
+                <Route path="/*" element={<Home />} />
+                <Route path="/products" element={<Products />}></Route>
+            </Routes>
         </div>
-        <Footer />
-      </div>
-
-      <ButtonGradient />
-    </>
-  );
+    );
 };
 
 export default App;
