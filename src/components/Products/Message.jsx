@@ -1,14 +1,14 @@
 import React, { useRef } from "react";
 import Section from "../Section";
-import { message1, gradient } from "../../assets";
-import { BackgroundCircles } from "../design/Header";
+import { message1 } from "../../assets";
+import { BackgroundCircles, Rings } from "../design/Header";
 import { Gradient } from "../design/Hero";
 
 export default function Message() {
     const parallaxRef = useRef(null);
     return (
         <Section
-            className="pt-[9rem] md:pt-[12rem] -mt-[5.25rem]"
+            className="pt-[9rem] md:pt-[12rem] -mt-[5.25rem] pb-15"
             crosses
             crossesOffset="lg:translate-y-[5.25rem]"
             customPaddings
@@ -32,6 +32,7 @@ export default function Message() {
                         </div>
                     </div>
                 </div>
+                <Rings />
                 <BackgroundCircles />
             </div>
         </Section>

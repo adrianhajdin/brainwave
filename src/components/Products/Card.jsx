@@ -7,7 +7,7 @@ export default function Card({ product }) {
         <div
             key={product.id}
             className="card w-full h-full px-5 py-10 bg-n-8 border border-n-6 rounded-xl flex flex-col justify-center items-center"
-            style={{ maxHeight: "35rem" }}
+            style={{ maxHeight: "30rem" }}
         >
             <div className="flex justify-center items-center" style={{ minHeight: "40%" }}>
                 <img
@@ -22,7 +22,7 @@ export default function Card({ product }) {
                 <p>{product.description}</p>
             </div>
             <div style={{ minHeight: "25%" }} className="w-full">
-                <Button className="w-full mb-6 mt-8 z-10 border-2 rounded-lg border-n-6" href={product.url}>
+                <Button className="w-full mt-14 z-10 border hover:border-2 rounded-lg border-n-6" href={product.url}>
                     BUY
                 </Button>
             </div>
