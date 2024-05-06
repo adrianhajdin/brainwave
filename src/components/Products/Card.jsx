@@ -6,8 +6,8 @@ export default function Card({ product }) {
     return (
         <div
             key={product.id}
-            className="card w-full h-full px-5 py-10 bg-n-8 border border-n-6 rounded-xl flex flex-col justify-center items-center"
-            style={{ maxHeight: "30rem" }}
+            className="card w-full h-full px-5 py-10 bg-n-8 border border-n-6 rounded-xl flex flex-col justify-center items-center min-h-[35rem]"
+            style={{ maxHeight: "35rem" }}
         >
             <div className="flex justify-center items-center" style={{ minHeight: "40%" }}>
                 <img
