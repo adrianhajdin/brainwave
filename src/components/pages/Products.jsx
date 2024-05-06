@@ -1,14 +1,16 @@
-import Card from "../Products/Card";
-import { products } from "../../constants/products";
+import Message from "../Products/Message";
+import Header from "../Header";
+import ProductsList from "../Products/ProductsList";
+import Recommendations from "../Products/Recommendations";
+import Footer from "../Footer";
 
 export default function Products() {
     return (
-        <div className="overflow-hidden">
-            <div className="grid grid-cols-4 gap-6 m-4">
-                {products.map((item) => (
-                    <Card key={item.id} product={item} />
-                ))}
-            </div>
+        <div className="pt-[4.75rem] lg:pt-[5.25rem] overflow-hidden">
+            <Header />
+            <Message />
+            <ProductsList />
+            <Recommendations />
         </div>
     );
 }
