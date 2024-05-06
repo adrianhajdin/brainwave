@@ -7,12 +7,7 @@ const Pricing = () => {
     return (
         <Section className="overflow-hidden" id="pricing">
             <div className="container relative z-2">
-                <Heading tag="Get started" title="Pricing plans for April 2024" />
-                <div className="flex justify-center mt-10 pb-10">
-                    <a className="text-s font-code font-bold tracking-wider uppercase border-b text-color-6">
-                        ACT NOW! This special discount pricing ends May 1, 2024
-                    </a>
-                </div>
+                <Heading tag="Get started" title="Pricing plans for May 2024" />
 
                 <div className="relative">
                     <PricingList />
