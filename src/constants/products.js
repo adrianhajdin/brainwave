@@ -12,7 +12,7 @@ export const products = [
         photo: "https://m.media-amazon.com/images/I/6139KqScfLL._AC_SY355_.jpg",
         title: "Computing Equipment",
         description:
-            "Equipped with an Intel Core i5 processor, 8 GB DDR4 memory, and a 256 GB solid-state drive, our computers ensure optimal performance for multitasking and productivity. They include a Full HD touch screen and built-in microphone to facilitate remote operations.",
+            "Equipped with an Intel Core i5 processor, 8 GB DDR4 memory, and a 256 GB solid-state drive, our computers ensure optimal performance for multitasking and productivity.",
         url: "https://www.amazon.com/dp/B084KTWHX4?_encoding=UTF8&psc=1&ref_=cm_sw_r_cp_ud_dp_4YPY5C43HWHVPCYZ18P9",
     },
     {
@@ -44,7 +44,7 @@ export const products = [
         photo: "https://m.media-amazon.com/images/I/71pLCmGiBNL._AC_SX355_.jpg",
         title: "Keychains",
         description:
-            "Easy to unlock keychains great for having the key tag and the car key connected. Durable and strong, flexible, corrosion-resistant cable key ring that is built to last. The companies that use them have no bad opinions.",
+            "Easy to unlock keychains great for having the key tag and the car key connected. Durable and strong, flexible, corrosion-resistant cable key ring that is built to last.",
         url: "https://www.amazon.com/dp/B013WB8WBM?ref_=cm_sw_r_cso_wa_apin_dp_S15EC125HZNYYRRVBYJA&starsLeft=1&th=1",
     },
     {
@@ -68,7 +68,7 @@ export const products = [
         photo: "https://m.media-amazon.com/images/I/71nk9TnDosL._AC_SX466_.jpg",
         title: "Professional headphones for sales",
         description:
-            "Give customers the clearest calls with the Jabra Engage 50 Mono Wired Headset. It has a unique 3- microphone system and a super wideband for superior digital sound. Avoid background noise easily.",
+            "Give customers the clearest calls with the Jabra Engage 50 Mono Wired Headset. It has a unique 3- microphone system and a super wideband for superior digital sound.",
         url: "https://www.amazon.com/dp/B07JMWH96G?ref_=cm_sw_r_cso_wa_apin_dp_XXNE10H70H9RR2837P40&starsLeft=1&th=1",
     },
     {

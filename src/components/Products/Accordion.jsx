@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 
 const Accordion = ({ items }) => {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -8,9 +9,9 @@ const Accordion = ({ items }) => {
     };
 
     return (
-        <div className="bg-white border-n-6 mt-10">
+        <div className="border-n-6 mt-10">
             {items.map((item, index) => (
-                <div key={index.id} className="mb-4">
+                <div key={item.id} className="mb-4">
                     <button
                         className={`bg-n-8 p-4 w-full border border-n-6 rounded-lg flex justify-between items-center hover:bg-slate-100`}
                         onClick={() => handleToggle(index)}
@@ -40,6 +41,15 @@ const Accordion = ({ items }) => {
             ))}
         </div>
     );
+};
+
+Accordion.propTypes = {
+    items: PropTypes.arrayOf(
+        PropTypes.shape({
+            title: PropTypes.string.isRequired,
+            content: PropTypes.node.isRequired,
+        })
+    ).isRequired,
 };
 
 export default Accordion;

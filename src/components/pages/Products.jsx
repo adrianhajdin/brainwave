@@ -11,6 +11,7 @@ export default function Products() {
             <Message />
             <ProductsList />
             <Recommendations />
+            <Footer />
         </div>
     );
 }

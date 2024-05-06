@@ -14,7 +14,10 @@ export default function Recommendations() {
                     <h1 className="h2 mb-2">The best for you</h1>
                     <Accordion items={itemsA} />
                 </div>
-                <div className="relative max-w-[23rem] mx-auto md:max-w-5xl xl:mb-24">
+                <div className="absolute -top-[54%] left-1/2 w-[234%] -translate-x-1/2 md:-top-[46%] md:w-[138%] lg:-top-[104%] opacity-20">
+                    <img src={gradient} className="w-full" width={1440} height={1800} alt="hero" />
+                </div>
+                <div className="relative max-w-[23rem] mx-auto md:max-w-5xl xl:pb-6">
                     <BackgroundCircles />
                 </div>
             </div>

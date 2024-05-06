@@ -11,7 +11,7 @@ export default function ProductsList() {
                 <Heading tag="Get started" title={<strong>Our recommended products</strong>} />
             </div>
             <div className="container relative z-2">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 m-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 m-4">
                     {products.map((item) => (
                         <Card key={item.id} product={item} />
                     ))}
