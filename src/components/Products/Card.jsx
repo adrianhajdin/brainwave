@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import Button from "../Button";
 
 export default function Card({ product }) {
+    const openInNewTab = () => window.open(product.url);
     return (
         <div
             key={product.id}
@@ -22,7 +23,10 @@ export default function Card({ product }) {
                 <p>{product.description}</p>
             </div>
             <div style={{ minHeight: "25%" }} className="w-full">
-                <Button className="w-full mt-14 z-10 border hover:border-2 rounded-lg border-n-6" href={product.url}>
+                <Button
+                    className="w-full mt-14 z-10 border hover:border-2 rounded-lg border-n-6"
+                    onClick={() => openInNewTab(product.url)}
+                >
                     BUY
                 </Button>
             </div>
