@@ -3,6 +3,7 @@ import Header from "../Header";
 import ProductsList from "../Products/ProductsList";
 import Recommendations from "../Products/Recommendations";
 import Footer from "../Footer";
+import ButtonGradient from "../../assets/svg/ButtonGradient";
 
 export default function Products() {
     return (
@@ -12,6 +13,7 @@ export default function Products() {
             <ProductsList />
             <Recommendations />
             <Footer />
+            <ButtonGradient />
         </div>
     );
 }

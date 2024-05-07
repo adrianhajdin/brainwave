@@ -21,10 +21,7 @@ export default function Card({ product }) {
                 <p>{product.description}</p>
             </div>
             <div style={{ minHeight: "25%" }} className="w-full">
-                <Button
-                    className="w-full mt-14 z-10 border hover:border-2 rounded-lg border-n-6"
-                    onClick={() => window.open(product.url)}
-                >
+                <Button className="w-full mt-14 z-10 rounded-lg " onClick={() => window.open(product.url)}>
                     BUY
                 </Button>
             </div>
