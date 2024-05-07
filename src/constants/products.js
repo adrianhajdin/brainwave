@@ -37,7 +37,7 @@ export const products = [
         photo: "https://s.alicdn.com/@sc04/kf/Ha68975bdea214f84a5afd5903d1694f9w.jpg_720x720q50.jpg",
         title: "Phone Booth Privacy Office Meeting",
         description:
-            "Soundbox sound proof booth, great for your virtual assistance services with VideFace. Good quality materials, cheap price with multiple color and size options. Ideal for one person in the rental process.",
+            "Soundbox sound proof booth, great for your virtual assistance services with VideFace. Good quality materials, cheap price with multiple color and size options. ",
         url: "https://www.alibaba.com/product-detail/subject_1601115353228.html?from=share&ckvia=share_4FC17064FC3D4CEAAA3DEF05E944F874",
     },
     /* {
@@ -101,7 +101,7 @@ export const products = [
         photo: "https://m.media-amazon.com/images/I/61B6nUHfK3L._AC_SX466_.jpg",
         title: "INSWAN INS-1 USB Document Camera",
         description:
-            "8 Megapixel ultra-high definition SONY camera captures live images, perfect for obtaining license and/or card information. Access this camera from your rental software. Good alternative currently used by some of the companies using VideFace.",
+            "8 Megapixel ultra-high definition SONY camera captures live images, perfect for obtaining license and/or card information. Access this camera from your rental software. ",
         url: "https://www.amazon.com/dp/B07PQJZK66?ref_=cm_sw_r_cso_cp_apin_dp_55F64413XVBDRA3AE4E6&starsLeft=1&skipTwisterOG=1&th=1",
     },
 ];
