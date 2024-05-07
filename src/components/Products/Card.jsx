@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import Button from "../Button";
 
 export default function Card({ product }) {
-    const openInNewTab = () => window.open(product.url);
     return (
         <div
             key={product.id}
@@ -14,7 +13,7 @@ export default function Card({ product }) {
                 <img
                     src={product.photo}
                     alt="product"
-                    className="rounded-sm max-w-full max-h-full"
+                    className="rounded-lg max-w-full max-h-full"
                     style={{ maxHeight: "100%", maxWidth: "100%", objectFit: "contain" }}
                 />
             </div>
@@ -25,7 +24,7 @@ export default function Card({ product }) {
             <div style={{ minHeight: "25%" }} className="w-full">
                 <Button
                     className="w-full mt-14 z-10 border hover:border-2 rounded-lg border-n-6"
-                    onClick={() => openInNewTab(product.url)}
+                    onClick={() => window.open(product.url)}
                 >
                     BUY
                 </Button>

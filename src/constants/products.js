@@ -7,22 +7,7 @@ export const products = [
             "Specialized scanners for validating identity documents such as passports and driving licenses, providing quick and reliable authentication.",
         url: "https://365id.com/en/solutions/365id-scanners/",
     },
-    {
-        id: 2,
-        photo: "https://m.media-amazon.com/images/I/6139KqScfLL._AC_SY355_.jpg",
-        title: "Computing Equipment",
-        description:
-            "Equipped with an Intel Core i5 processor, 8 GB DDR4 memory, and a 256 GB solid-state drive, our computers ensure optimal performance for multitasking and productivity.",
-        url: "https://www.amazon.com/dp/B084KTWHX4?_encoding=UTF8&psc=1&ref_=cm_sw_r_cp_ud_dp_4YPY5C43HWHVPCYZ18P9",
-    },
-    {
-        id: 3,
-        photo: "https://m.media-amazon.com/images/I/61Fx1PMA-QL._AC_SY355_.jpg",
-        title: " CZUR Lens1200 Pro",
-        description:
-            "Portable document scanner with powerful software for advanced document processing, 12 MP HD camera, and quick 1-second per page scanning. Compact and easy to use.",
-        url: "https://www.amazon.com/dp/B0BKZ1ZBPB?ref_=cm_sw_r_cp_ud_dp_P46HYTJQ55H3KB94406S&th=1",
-    },
+    
     {
         id: 4,
         photo: "https://www.keycafe.com/static/MXNiVpqsxZPvl4oSSkrmMzIc5sQnnlBoT4uCYxum473.png",
@@ -49,20 +34,20 @@ export const products = [
     },
     {
         id: 7,
-        photo: "https://m.media-amazon.com/images/I/91VA3EK8UUL._AC_SY450_.jpg",
-        title: "Wall Mounted Box for Key Return Drop",
+        photo: "https://s.alicdn.com/@sc04/kf/Ha68975bdea214f84a5afd5903d1694f9w.jpg_720x720q50.jpg",
+        title: "Phone Booth Privacy Office Meeting",
         description:
-            "Perfect solution for convenient and secure key organization, making it ideal for your car rental offices. Using the scanner, this box and VideFace, you’ll have all you need for the key drop off.",
-        url: "https://www.amazon.com/dp/B071W5863V?ref_=cm_sw_r_cso_wa_apin_dp_K17DRB477X72H7YF9Y90&starsLeft=1&th=1",
+            "Soundbox sound proof booth, great for your virtual assistance services with VideFace. Good quality materials, cheap price with multiple color and size options. Ideal for one person in the rental process.",
+        url: "https://www.alibaba.com/product-detail/subject_1601115353228.html?from=share&ckvia=share_4FC17064FC3D4CEAAA3DEF05E944F874",
     },
-    {
+    /* {
         id: 8,
         photo: "https://m.media-amazon.com/images/I/61mQUuy7yHL._AC_SX466_.jpg",
         title: "Scanner for Key Return",
         description:
             "Desktop Barcode/QR Code Scanner USB Handsfree Barcode Scanner with Adjustable Scan Head, Automatic Barcode Reader for Android/Windows. Perfect for scanning the key return.",
         url: "https://www.amazon.com/dp/B0BQJ349J1?ref_=cm_sw_r_cso_wa_apin_dp_TPJDSF53709XE38946J5&starsLeft=1&th=1",
-    },
+    }, */
     {
         id: 9,
         photo: "https://m.media-amazon.com/images/I/71nk9TnDosL._AC_SX466_.jpg",
@@ -89,19 +74,19 @@ export const products = [
     },
     {
         id: 12,
-        photo: "https://m.media-amazon.com/images/I/81ViPKVRvgL._AC_SX679_.jpg",
-        title: "Wall Mounted Box for Key Storage",
+        photo: "https://m.media-amazon.com/images/I/91VA3EK8UUL._AC_SY450_.jpg",
+        title: "Wall Mounted Box for Key Return Drop",
         description:
-            "Nekane 200 Keys Fireproof Key Safe with Hook Plates & Key Tags, Anti-Theft Key Lock Box Wall Mount with Combination Lock, Key Organizer Wall Safe for your new Virtual Office and Key Management.",
-        url: "https://www.amazon.com/dp/B0CC629SJK?ref_=cm_sw_r_cso_wa_apin_dp_CRNRSJNHMPNM7F8VQTET&starsLeft=1&language=en_US&th=1",
+            "Perfect solution for convenient and secure key organization, making it ideal for your car rental offices. Using the scanner, this box and VideFace, you’ll have all you need for the key drop off.",
+        url: "https://www.amazon.com/dp/B071W5863V?ref_=cm_sw_r_cso_wa_apin_dp_K17DRB477X72H7YF9Y90&starsLeft=1&th=1",
     },
     {
         id: 13,
-        photo: "https://m.media-amazon.com/images/I/41ut0yclSOL._AC_SX466_.jpg",
-        title: "Google Nest Surveillance Camera",
+        photo: "https://m.media-amazon.com/images/I/51DXJ-Q8WqL.jpg",
+        title: "Google Nest Cam Indoor",
         description:
             "24/7 live video, 130 degrees 1080P HD day and night. Great for monitoring your rentals, offices and cars. Get the full history of everyday’s records with this service.",
-        url: "https://www.amazon.com/dp/B01I3I9L8M?ref_=cm_sw_r_cso_wa_apin_dp_C2319988GWXXGWT4CD6Q&starsLeft=1&th=1",
+        url: "https://www.amazon.com/dp/B00WBJGUA2?ref_=cm_sw_r_cso_cp_apin_dp_ZQVEHG8RECC6C45WTGMT&starsLeft=1&skipTwisterOG=1&th=1",
     },
     {
         id: 14,
@@ -111,4 +96,39 @@ export const products = [
             "500VA/300W Smart App LCD Uninterruptible Power Supply (UPS) System uses simulated sine wave output to protect department and workgroup servers, network devices and more.",
         url: "https://www.amazon.com/dp/B000XJJN60?ref_=cm_sw_r_cso_wa_apin_dp_2NRG0CW61AJS37XNTP39&starsLeft=1&th=1",
     },
+    {
+        id: 15,
+        photo: "https://m.media-amazon.com/images/I/61B6nUHfK3L._AC_SX466_.jpg",
+        title: "INSWAN INS-1 USB Document Camera",
+        description:
+            "8 Megapixel ultra-high definition SONY camera captures live images, perfect for obtaining license and/or card information. Access this camera from your rental software. Good alternative currently used by some of the companies using VideFace.",
+        url: "https://www.amazon.com/dp/B07PQJZK66?ref_=cm_sw_r_cso_cp_apin_dp_55F64413XVBDRA3AE4E6&starsLeft=1&skipTwisterOG=1&th=1",
+    },
 ];
+
+export const requiredProducts = [
+    {
+        id: 3,
+        photo: "https://m.media-amazon.com/images/I/61Fx1PMA-QL._AC_SY355_.jpg",
+        title: " CZUR Lens1200 Pro",
+        description:
+            "Portable document scanner with powerful software for advanced document processing, 12 MP HD camera, and quick 1-second per page scanning. Compact and easy to use.",
+        url: "https://www.amazon.com/dp/B0BKZ1ZBPB?ref_=cm_sw_r_cp_ud_dp_P46HYTJQ55H3KB94406S&th=1",
+    },
+    {
+        id: 2,
+        photo: "https://m.media-amazon.com/images/I/6139KqScfLL._AC_SY355_.jpg",
+        title: "Computing Equipment",
+        description:
+            "Equipped with an Intel Core i5 processor, 8 GB DDR4 memory, and a 256 GB solid-state drive, our computers ensure optimal performance for multitasking and productivity.",
+        url: "https://www.amazon.com/dp/B084KTWHX4?_encoding=UTF8&psc=1&ref_=cm_sw_r_cp_ud_dp_4YPY5C43HWHVPCYZ18P9",
+    },
+    {
+        id: 13,
+        photo: "https://m.media-amazon.com/images/I/512lYWbJJNL._AC_SX466_.jpg",
+        title: "HDMI Dummy Plug (4K UHD)",
+        description:
+            "Create a virtual display to manage multiple activities remotely in the screen while the client sees VideFace all the time. Useful if you have a local payment point instead of the Wi-Fi one.",
+        url: "https://www.amazon.com/dp/B0B5XVQVJ9?ref=ppx_pop_mob_ap_share&th=1",
+    },
+]
