@@ -6,7 +6,7 @@ export default function PlanCard({ item }) {
     return (
         <div
             key={item.id}
-            className="w-[19rem] max-lg:w-full h-full px-6 bg-n-8 border border-n-6 rounded-[2rem] lg:w-auto p-4 text-center [&>h4]:first:text-color-2 [&>h4]:even:text-color-1 [&>h4]:last:text-color-2"
+            className="w-[19rem] max-lg:w-full h-full px-6 bg-n-8 border border-n-6 rounded-[2rem] lg:w-auto p-4 text-center [&>h4]:first:text-color-2 [&>h4]:last:text-color-1 [&>h4]:even:text-color-2"
         >
             <h4 className="text-[1.5rem] leading-normal">{item.title}</h4>
 

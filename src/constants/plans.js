@@ -1,3 +1,30 @@
+export const plans = [
+    {
+      id: "0",
+      title: "VideFace Calls",
+      description: "Monthly prices per office.",
+      price1: "2 Kiosks $649",
+      price2: "3 Kiosks $849",
+      price3: "Extra: $149 each",
+    },
+    {
+      id: "2",
+      title: "VideFace Cars",
+      description: "Monthly prices for all cars.",
+      price1: "200 Cars $249",
+      price2: "300 Cars $299",
+      price3: "Every 100+ for $50",
+    },
+    {
+        id: "1",
+        title: "Full VideFace",
+        description: "VideFace Calls + VideFace Cars and more!",
+        price1: "Previous prices",
+        price2: "Get new features",
+        price3: "No car's initial fee",
+      },
+  ];
+
 export const tablesData = [
     {
         id:1,

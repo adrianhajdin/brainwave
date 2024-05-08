@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from "prop-types";
 
 export default function Table({ data }) {
     return (
@@ -33,3 +34,12 @@ export default function Table({ data }) {
 function IconCheck() {
     return <span>&#10003;</span>;
 }
+
+Table.propTypes = {
+    data: PropTypes.shape({
+        title: PropTypes.shape({
+            text: PropTypes.string.isRequired,
+        }),
+        elements: PropTypes.object.isRequired,
+    }).isRequired,
+};
