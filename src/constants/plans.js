@@ -280,7 +280,7 @@ export const tablesData = [
         }
     },
     {
-        id:4,
+        id:5,
         title: {
             icon: "text",
             text: "Global features"
