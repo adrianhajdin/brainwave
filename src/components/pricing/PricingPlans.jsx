@@ -9,7 +9,7 @@ export default function PricingPlans() {
     return (
         <Section id="plans" className="sticky">
             <div className="container relative z-2">
-                <StickyBox offsetTop={85}>
+                <StickyBox offsetTop={85} className="z-10">
                     <div className="grid grid-cols-4 gap-6 m-4 bg-white">
                         <div className="col-span-1 flex flex-col justify-end">
                             <div className="mt-auto text-color-1 ml-4 font-bold">Title</div>

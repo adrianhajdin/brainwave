@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import Tooltip from "./Tooltip";
 
 export default function Table({ data }) {
     return (
@@ -15,7 +16,14 @@ export default function Table({ data }) {
                     key={key}
                     className={`grid grid-cols-4 gap-6 m-4 ${index % 2 === 0 ? "bg-[#F0F8FE] rounded-md" : ""}`}
                 >
-                    <div className="col-span-1 p-4">{element.description}</div>
+                    <div className="col-span-1 p-4 flex justify-between">
+                        <div>{element.name}</div>
+                        <div>
+                            <Tooltip content="Este es un tooltip">
+                                <span>&#9786;</span>
+                            </Tooltip>
+                        </div>
+                    </div>
                     <div className="col-span-1 flex justify-center p-4">
                         {element.call === "true" ? <IconCheck /> : "-"}
                     </div>

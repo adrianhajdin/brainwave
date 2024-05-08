@@ -34,49 +34,49 @@ export const tablesData = [
         },
         elements: {
             row1: {
-                description: "Fast connection between agent and client",
+                name: "Fast connection between agent and client",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row2: {
-                description: "Unlimited distance for every connection",
+                name: "Unlimited distance for every connection",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row3:{
-                description: "Audio and Video custom configuration",
+                name: "Audio and Video custom configuration",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row4:{
-                description: "Unlimited amount of calls per kiosk",
+                name: "Unlimited amount of calls per kiosk",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row5:{
-                description: "Unlimited time for each call",
+                name: "Unlimited time for each call",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row6:{
-                description: "Capacity to force a call to any kiosk",
+                name: "Capacity to force a call to any kiosk",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row7:{
-                description: "Complete management for incoming calls",
+                name: "Complete management for incoming calls",
                 call: "true",
                 all: "true",
                 car: "false"
             },
             row8:{
-                description: "Connect from any device (computer, tablet, etc.)",
+                name: "Connect from any device (computer, tablet, etc.)",
                 call: "true",
                 all: "true",
                 car: "false"
@@ -91,55 +91,55 @@ export const tablesData = [
         },
         elements: {
             row1: {
-                description: "Create the kiosks with the information you need",
+                name: "Create the kiosks with the information you need",
                 call: "false",
                 all: "true",
                 car: "true"
             },
             row2: {
-                description: "Change the kiosk's information anytime",
+                name: "Change the kiosk's information anytime",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row3: {
-                description: "Easily setup your kiosk on the device with just a login",
+                name: "Easily setup your kiosk on the device with just a login",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row4: {
-                description: "Personalize the kiosk's screens displayed to your clients",
+                name: "Personalize the kiosk's screens displayed to your clients",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row5: {
-                description: "Amount of total custom screens your company can have",
+                name: "Amount of total custom screens your company can have",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row6: {
-                description: "Close hours: define when the kiosk will be closed",
+                name: "Close hours: define when the kiosk will be closed",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row7: {
-                description: "Temporarily closed: set a kiosk to not be available as long as you need",
+                name: "Temporarily closed: set a kiosk to not be available as long as you need",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row8: {
-                description: "Filter your kiosks by office and set them to specific agents",
+                name: "Filter your kiosks by office and set them to specific agents",
                 call: "true",
                 all: "false",
                 car: "true"
             },
             row9: {
-                description: "History and metrics for every kiosk",
+                name: "History and metrics for every kiosk",
                 call: "true",
                 all: "false",
                 car: "true"
