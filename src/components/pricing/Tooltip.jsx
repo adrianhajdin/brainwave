@@ -18,12 +18,13 @@ const Tooltip = ({ content, children }) => {
             </span>
             {showTooltip && (
                 <div
-                    className="absolute z-10 top-0 left-0 p-4 bg-white rounded-md shadow-md w-[10rem]"
+                    className="absolute z-10 top-0 left-0 p-4 bg-n-5 text-white text-center rounded-md w-[12rem]"
                     style={{
-                        transform: "translateY(-100%)",
+                        transform: "translate(-46%, -130%)",
                     }}
                 >
                     {content}
+                    <div className="bg-n-5 rounded-sm bottom-[-8px] h-5 left-[50%] ml-[-10px] absolute rotate-45 w-5 z-2"></div>
                 </div>
             )}
         </div>
