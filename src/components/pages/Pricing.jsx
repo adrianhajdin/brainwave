@@ -3,6 +3,7 @@ import Footer from "../Footer";
 import Header from "../Header";
 import Pricing from "../Pricing";
 import PricingPlans from "../pricing/PricingPlans";
+import PricingAccordion from "../pricing/PricingAccordion";
 
 export default function PricingPage() {
     return (
@@ -11,6 +12,7 @@ export default function PricingPage() {
                 <Header />
                 <Pricing />
                 <PricingPlans />
+                <PricingAccordion />
                 <Footer />
             </div>
 
