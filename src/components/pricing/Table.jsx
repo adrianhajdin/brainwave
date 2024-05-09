@@ -6,9 +6,15 @@ export default function Table({ data }) {
     return (
         <div className="mb-32">
             <div className="grid grid-cols-4 gap-6 m-4">
-                <div className="col-span-1">
-                    <h2 className="text-color-1 ml-4 font-bold text-xl">{data.title.text}</h2>
-                </div>
+                {data.id == 1 ? (
+                    <div className="col-span-1 hidden">
+                        <h2 className="text-color-1 ml-4 font-bold text-xl">{data.title.text}</h2>
+                    </div>
+                ) : (
+                    <div className="col-span-1">
+                        <h2 className="text-color-1 ml-4 font-bold text-xl">{data.title.text}</h2>
+                    </div>
+                )}
             </div>
 
             {Object.entries(data.elements).map(([key, element], index) => (
