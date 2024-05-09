@@ -17,7 +17,7 @@ export default function Table({ data }) {
                     className={`grid grid-cols-4 gap-6 m-4 ${index % 2 === 0 ? "bg-[#F0F8FE] rounded-md" : ""}`}
                 >
                     <div className="col-span-1 p-4 flex justify-between">
-                        <div>{element.name}</div>
+                        <div className="max-w-[79%]">{element.name}</div>
                         <div className="flex items-center">
                             <Tooltip content={element.description}>
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none">
