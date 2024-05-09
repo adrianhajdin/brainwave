@@ -26,7 +26,7 @@ export default function PricingPlans() {
             }
         };
 
-        const observer = new IntersectionObserver(handleIntersection, { threshold: 0.6 });
+        const observer = new IntersectionObserver(handleIntersection, { threshold: 0.4 });
 
         tableRefs.current.forEach((ref) => {
             observer.observe(ref);
