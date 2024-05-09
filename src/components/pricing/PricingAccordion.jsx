@@ -3,6 +3,7 @@ import { tablesData } from "../../constants/plans";
 import Tooltip from "./Tooltip";
 import AccordionTable from "./AccordionTable";
 import Section from "../Section";
+import Heading from "../Heading";
 
 export default function PricingAccordion() {
     const [activeIndex, setActiveIndex] = useState(null);
@@ -14,6 +15,7 @@ export default function PricingAccordion() {
     return (
         <Section id="plansMobile" className="sticky">
             <div className="container relative z-2">
+                <Heading tag="FEATURES" title="Compare our plans" />
                 <div className="flex flex-col gap-4">
                     {tablesData.map((tableData, index) => (
                         <div key={tableData.id} className="rounded-md overflow-hidden">

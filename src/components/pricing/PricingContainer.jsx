@@ -17,17 +17,5 @@ export default function PricingContainer() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    return (
-        <div>
-            {isMobile ? (
-                <>
-                    <PricingAccordion />
-                </>
-            ) : (
-                <>
-                    <PricingPlans />
-                </>
-            )}
-        </div>
-    );
+    return <div>{isMobile ? <PricingAccordion /> : <PricingPlans />}</div>;
 }
