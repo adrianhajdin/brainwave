@@ -251,14 +251,14 @@ export const tablesData = [
             },
             row6: {
                 name: "Dashboard for the kiosk's global information",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "See the metrics for all your kiosks combined and compare them.",
                 call: "Soon",
                 car: "false",
                 all: "true"
             },
             row7: {
                 name: "Manage all global features (if applies)",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Admins are able to change company information, offices and more.",
                 call: "true",
                 car: "true",
                 all: "true"
@@ -274,49 +274,28 @@ export const tablesData = [
         elements: {
             row1: {
                 name: "Global reload: refresh all your kiosks at the same time",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Just one click to refresh all your kiosks at once in any case you need to do this.",
+                call: "true",
+                car: "false",
+                all: "true"
+            },
+            row2: {
+                name: "Real time notifications for all the agents and admins",
+                description: "Be able to create notifications for your users to inform anything.",
                 call: "true",
                 car: "true",
                 all: "true"
             },
-            row2: {
-                name: "Manage all the users (agents and kiosks)",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
-                call: "true",
-                car: "false",
-                all: "true"
-            },
             row3: {
-                name: "Dashboard for the agent's individual information",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
-                call: "Soon",
-                car: "Soon",
+                name: "Fast access to all your information and services",
+                description: "View all your data, information and more in an intuitive interface.",
+                call: "true",
+                car: "true",
                 all: "true"
             },
             row4: {
-                name: "Dashboard for the agent's global information",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
-                call: "Soon",
-                car: "Soon",
-                all: "true"
-            },
-            row5: {
-                name: "Dashboard for the kiosk's individual information",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
-                call: "Soon",
-                car: "false",
-                all: "true"
-            },
-            row6: {
-                name: "Dashboard for the kiosk's global information",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
-                call: "Soon",
-                car: "false",
-                all: "true"
-            },
-            row7: {
-                name: "Manage all global features (if applies)",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                name: "Support from VideFace Team for any of your needs",
+                description: "Contact us at anytime to supply your needs, we will answer as soon as possible.",
                 call: "true",
                 car: "true",
                 all: "true"
@@ -332,73 +311,80 @@ export const tablesData = [
         elements: {
             row1: {
                 name: "Create your own fleet of cars",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Have all your cars with its information in real time. Manage them as you wish!",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row2: {
                 name: "Set any agent to manage cars (admins do it by default)",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Decide if you want some agents to also manage cars, or just the admins.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row3: {
                 name: "Add base pictures for each car",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "You can upload up to 12 base images that will represent your car.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row4: {
                 name: "Add multiple damage pictures for each base picture",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Upload up to 25 damages per base image and change them as you wish,",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row5: {
-                name: "Automatically generated link and QR code to check the car",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                name: "Generated link and QR code to check the car",
+                description: "Automatically generate the car link and QR so your clients can open that page with it.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row6: {
                 name: "See each car's current conditions with the link",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Clients will see in real time the base images and damages of the car.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row7: {
                 name: "Terms and conditions email delivery",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Inform your clients and yourself when they've accepted your terms and conditions.",
                 call: "false",
                 car: "false",
                 all: "false"
             },
             row8: {
                 name: "Car Walk Around email delivery",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Send an email to your client and yourself with the Walk Around pictures to have evidence.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row9: {
                 name: "Clients can take pictures to the car for pickup and return",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Save money and bad experiences with evidence of each car rental process.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row10: {
                 name: "Have all the clients pictures for each car inside VideFace",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "You'll have a history of all the pictures related to each car, specially the ones from the clients.",
                 call: "false",
                 car: "Soon",
                 all: "Soon"
+            },
+            row11: {
+                name: "Edit or delete existing cars in real time",
+                description: "You're able to change the information related to your cars, or just delete them.",
+                call: "false",
+                car: "true",
+                all: "true"
             },
         }
     },
@@ -411,28 +397,28 @@ export const tablesData = [
         elements: {
             row1: {
                 name: "Manage all the keys of your offices in real time",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Be aware of the available keys for your offices with our connection with KeyCafe",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row2: {
                 name: "Give the keys to your clients with just one click",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Be able to do this inside VideFace by generating a new code or just opening the box.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row3: {
                 name: "Easily have your keys organized so your agents can give them at distance",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "We will display the current keys available depending on the kiosk you're assisting.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row4: {
                 name: "Actions history for the keys",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "KeyCafe can display the history of any key with precise information.",
                 call: "false",
                 car: "true",
                 all: "true"
@@ -448,28 +434,28 @@ export const tablesData = [
         elements: {
             row1: {
                 name: "All your systems in one place for easy management",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Divide your VideFace by offices and get the full experience to save time and money.",
                 call: "true",
                 car: "true",
                 all: "true"
             },
             row2: {
                 name: "Asign agents to specific offices and/or kiosks",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "In case you need to limit your agents to specific offices or kiosks, you'll be able to do so.",
                 call: "Soon",
                 car: "Soon",
                 all: "Soon"
             },
             row3: {
                 name: "Asign cars and their keys to specific offices",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "All the cars are organized by offices for a better experience.",
                 call: "false",
                 car: "true",
                 all: "true"
             },
             row4: {
                 name: "See the overall working of all your offices",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Get the information you need about your offices in real time.",
                 call: "false",
                 car: "true",
                 all: "true"
@@ -485,21 +471,21 @@ export const tablesData = [
         elements: {
             row1: {
                 name: "We set up your VideFace domain and host it for you",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "You will have a personalized URL for your company, great for easy access from anywhere.",
                 call: "true",
                 car: "true",
                 all: "true"
             },
             row2: {
                 name: "No servers needed, we take care of that",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "All you need is to start using VideFace and we'll take care of everything related to servers.",
                 call: "true",
                 car: "true",
                 all: "true"
             },
             row3: {
                 name: "Data is securely stored using Firebase from Google",
-                description: "Assist your clients in a couple of seconds. Just answer and start attending them!",
+                description: "Our cloud-based infrastructure allows you to interact in real time as you wish.",
                 call: "true",
                 car: "true",
                 all: "true"

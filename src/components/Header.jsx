@@ -36,7 +36,7 @@ const Header = () => {
             }`}
         >
             <div className="flex items-center px-5 lg:px-7.5 xl:px-10 max-lg:py-4">
-                <a className="block w-[12rem] xl:mr-8" href="/home/#hero">
+                <a className="block w-[12rem]" href="/home/#hero">
                     <img src={brainwave} width={190} height={40} alt="Brainwave" />
                 </a>
 
@@ -65,9 +65,11 @@ const Header = () => {
                     <HamburgerMenu />
                 </nav>
 
-                <Button className="hidden lg:flex hover:text-color-4" href="#contact">
-                    Contact us
-                </Button>
+                <div className="w-[14rem] xl:w-[14rem] lg:w-[13rem]">
+                    <Button className="hidden lg:flex hover:text-color-4 w-[90%]" href="#contact">
+                        Contact us
+                    </Button>
+                </div>
 
                 <Button className="ml-auto lg:hidden" px="px-3" onClick={toggleNavigation}>
                     <MenuSvg openNavigation={openNavigation} />

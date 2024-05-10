@@ -39,6 +39,7 @@ import {
   slack,
   sliders04,
   telegram,
+  youtube,
   companyLogo1,
   companyLogo2,
   companyLogo3,
@@ -306,18 +307,24 @@ export const benefits = [
 export const socials = [
   {
     id: "1",
+    title: "Youtube",
+    iconUrl: youtube,
+    url: "https://www.youtube.com/@videfaceapp",
+  },
+  {
+    id: "2",
     title: "Instagram",
     iconUrl: instagram,
     url: "https://www.instagram.com/videface.app/",
   },
   {
-    id: "2",
+    id: "3",
     title: "LinkedIn",
     iconUrl: facebook,
     url: "https://www.linkedin.com/company/videface/",
   },
   {
-    id: "3",
+    id: "4",
     title: "Mail",
     iconUrl: telegram,
     url: "mailto:contact@videface.app",

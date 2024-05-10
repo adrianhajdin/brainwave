@@ -88,6 +88,7 @@ import facebook from "./socials/facebook.svg";
 import instagram from "./socials/instagram.svg";
 import telegram from "./socials/telegram.svg";
 import twitter from "./socials/twitter.svg";
+import youtube from "./socials/youtube.svg"
 
 import message1 from "./message1.webp"
 
@@ -171,6 +172,7 @@ export {
   instagram,
   telegram,
   twitter,
+  youtube,
   lightmode,
   darkmode,
   message1,
