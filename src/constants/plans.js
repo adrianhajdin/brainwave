@@ -332,7 +332,7 @@ export const tablesData = [
             },
             row4: {
                 name: "Add multiple damage pictures for each base picture",
-                description: "Upload up to 25 damages per base image and change them as you wish,",
+                description: "Upload up to 15 damages per base image and change them as you wish,",
                 call: "false",
                 car: "true",
                 all: "true"

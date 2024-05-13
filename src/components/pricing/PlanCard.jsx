@@ -12,17 +12,7 @@ export default function PlanCard({ item }) {
 
             <p className="min-h-[4rem] text-n-1">{item.description}</p>
 
-            <div className="flex items-center h-[1.5rem] mb-2 text-center justify-center">
-                {item.price1 && <div className="text-[1rem] leading-none font-bold">{item.price1}</div>}
-            </div>
-            <div className="flex items-center h-[1.5rem] mb-2 text-center justify-center">
-                {item.price2 && <div className="text-[1rem] leading-none font-bold">{item.price2}</div>}
-            </div>
-            <div className="flex items-center h-[1.5rem] mb-2 text-center justify-center">
-                {item.price3 && <div className="text-[1rem] leading-none font-bold">{item.price3}</div>}
-            </div>
-
-            <Button className="w-full mb-6 mt-8" href={item.price ? "/pricing" : "#contact"} white={!!item.price}>
+            <Button className="w-full mb-6" href={item.price ? "/pricing" : "#contact"} white={!!item.price}>
                 {item.price ? "Get started" : "Contact us"}
             </Button>
         </div>
