@@ -7,7 +7,7 @@ const Pricing = () => {
     return (
         <Section className="overflow-hidden" id="pricing">
             <div className="container relative z-2">
-                <Heading tag="Get started" title="Pricing plans for May 2024" />
+                <Heading tag="Get started" title="Pricing plans for June 2024" />
 
                 <div className="relative">
                     <PricingList />
