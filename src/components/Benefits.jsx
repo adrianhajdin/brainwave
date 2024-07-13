@@ -11,7 +11,7 @@ const Benefits = () => {
       <div className="container relative z-2">
         <Heading
           className="md:max-w-md lg:max-w-2xl"
-          title="Chat Smarter, Not Harder with Brainwave"
+          title="Work Smarter, Not Harder with MirageN"
         />
 
         <div className="flex flex-wrap gap-10 mb-10">
@@ -34,7 +34,7 @@ const Benefits = () => {
                     alt={item.title}
                   />
                   <p className="ml-auto font-code text-xs font-bold text-n-1 uppercase tracking-wider">
-                    Explore more
+                    Check it out
                   </p>
                   <Arrow />
                 </div>
