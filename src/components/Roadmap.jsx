@@ -69,7 +69,7 @@ const Roadmap = () => (
       </div>
 
       <div className="flex justify-center mt-12 md:mt-15 xl:mt-20">
-        <Button href="/roadmap">Checkout the MirageN gallery</Button>
+        <Button href="/roadmap">Download MirageN</Button>
       </div>
     </div>
   </Section>
