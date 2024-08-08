@@ -109,7 +109,7 @@ const SurveyForm = () => {
 			<div className="text-center bg-gray-800 p-6 rounded-lg">
 				<p className="font-bold mb-6 text-xl text-white">Which product are you most excited to use for your next token launch?</p>
 				<div className="flex flex-wrap justify-center gap-6">
-					{['PumpFun Bundler', 'Raydium Bundler', 'Uniswap Bundler', 'Raydium Rank Booster', 'Uniswap Rank Booster'].map((product) => (
+					{['PumpFun Bundle Sniper', 'Raydium Bundle Sniper', 'Uniswap Bundle Sniper', 'Rank Booster', 'Smart Profits Bot', 'Swap Manager'].map((product) => (
 						<label key={product} className="inline-flex items-center group">
 							<input 
 								type="radio" 

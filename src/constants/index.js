@@ -267,7 +267,7 @@ export const benefits = [
   {
     id: "0",
     title: "No Paywalls",
-    text: "No Licenses, No entry barriers, Just pay a small fee as you go",
+    text: "No Licenses. No entry barriers. Open to everyone.",
     backgroundUrl: "./src/assets/benefits/card-1.svg",
     iconUrl: benefitIcon1,
     imageUrl: benefitImage2,
@@ -275,7 +275,7 @@ export const benefits = [
   {
     id: "1",
     title: "Referrals",
-    text: "Refer other people and earn passive income from their fees",
+    text: "Refer other people and earn passive income from a part of their fees",
     backgroundUrl: "./src/assets/benefits/card-2.svg",
     iconUrl: benefitIcon2,
     imageUrl: benefitImage2,

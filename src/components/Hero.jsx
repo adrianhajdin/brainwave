@@ -39,7 +39,7 @@ const Hero = () => {
             </span>
           </h1>
           <p className="body-1 max-w-3xl mx-auto mb-6 text-n-2 lg:mb-8">
-            One stop solution to Launching, Trading and Marketing your community token
+            One stop solution to Launching, Sniping, Trading and Marketing your community token
 
             {/* Unleash the power of AI within Brainwave. Upgrade your productivity
             with Brainwave, the open AI chat app. */}
