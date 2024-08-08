@@ -67,7 +67,7 @@ const Hero = () => {
 
                 <iframe
                   className="w-full h-full"
-                  src="https://www.youtube.com/embed/jm4zmgw6V0U"
+                  src="https://youtu.be/embed/L7jcNEjyU48"
                   // src="https://youtu.be/tCs1DGYWIxo?si=db9C18RRFpwOMmOJ"
                   title="YouTube video player"
                   frameBorder="0"
