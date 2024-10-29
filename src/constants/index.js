@@ -39,36 +39,36 @@ import {
 export const navigation = [
   {
     id: "0",
-    title: "Features",
-    url: "#features",
+    title: "Home",
+    url: "#hero",
   },
   {
     id: "1",
-    title: "Pricing",
-    url: "#pricing",
+    title: "Products",
+    url: "#products",
   },
   {
     id: "2",
-    title: "How to use",
-    url: "#how-to-use",
+    title: "Benefits",
+    url: "#features",
   },
   {
     id: "3",
     title: "Roadmap",
-    url: "#roadmap",
+    url: "#callToAction",
   },
-  {
-    id: "4",
-    title: "New account",
-    url: "#signup",
-    onlyMobile: true,
-  },
-  {
-    id: "5",
-    title: "Sign in",
-    url: "#login",
-    onlyMobile: true,
-  },
+  // {
+  //   id: "4",
+  //   title: "New account",
+  //   url: "#signup",
+  //   onlyMobile: true,
+  // },
+  // {
+  //   id: "4",
+  //   title: "Sign in",
+  //   url: "#login",
+  //   onlyMobile: true,
+  // },
 ];
 
 export const heroIcons = [homeSmile, file02, searchMd, plusSquare];
@@ -94,8 +94,13 @@ export const brainwaveServicesIcons = [
 export const roadmap = [
   {
     id: "0",
-    title: "Voice recognition",
-    text: "Enable the chatbot to understand and respond to voice commands, making it easier for users to interact with the app hands-free.",
+    title: "Launch Bundler Snipers",
+    text: [
+      "Protect your launch from predatory snipers by securing supply at launch",
+      "Launch and Snipe your launch with 24 different wallets instantly on launch",
+     "Launch on Pump.fun, Raydium, Uniswap and more.",
+     "Manage bought tokens easily in all wallets through the swap manager"
+    ],
     date: "May 2023",
     status: "done",
     imageUrl: roadmap1,
@@ -103,27 +108,44 @@ export const roadmap = [
   },
   {
     id: "1",
-    title: "Gamification",
-    text: "Add game-like elements, such as badges or leaderboards, to incentivize users to engage with the chatbot more frequently.",
+    title: "Rank Boosters",
+    text: [
+      "Boost your ranking on Dexscreener by adding volume to your token on Raydium and Uniswap",
+      "Rank is boosted by optimising for volume, holders, buy/sell ratio and more",
+      "Volume is added by 1000's of wallets appearing like natural volume"
+    ],
     date: "May 2023",
     status: "progress",
     imageUrl: roadmap2,
+    colorful: true,
+
   },
   {
     id: "2",
-    title: "Chatbot customization",
-    text: "Allow users to customize the chatbot's appearance and behavior, making it more engaging and fun to interact with.",
+    title: "Swap Manager",
+    text: [
+      "Buy and Sell tokens with upto 24 wallets at once instantly on PumpFun, Raydium, Uniswap etc.",
+      "Trade with individual wallets or all wallets at once",
+      "Perfect to accumulate tokens to CTO or hold the floor",
+    ],
     date: "May 2023",
     status: "done",
     imageUrl: roadmap3,
+    colorful: true,
+
   },
   {
     id: "3",
-    title: "Integration with APIs",
-    text: "Allow the chatbot to access external data sources, such as weather APIs or news APIs, to provide more relevant recommendations.",
+    title: "Miscellaneous Services",
+    text: [
+      "Bump bot to keep your token on the top on PumpFun and Commentor bot to increase comments on PumpFun and Dexscreener",
+      "Advertise your token on Dexscreener, Sol Trending and other marketing avenues from 1 platform"
+    ],
     date: "May 2023",
     status: "progress",
     imageUrl: roadmap4,
+    colorful: true,
+
   },
 ];
 
@@ -244,16 +266,16 @@ export const pricing = [
 export const benefits = [
   {
     id: "0",
-    title: "Ask anything",
-    text: "Lets users quickly find answers to their questions without having to search through multiple sources.",
+    title: "No Paywalls",
+    text: "No Licenses. No entry barriers. Open to everyone.",
     backgroundUrl: "./src/assets/benefits/card-1.svg",
     iconUrl: benefitIcon1,
     imageUrl: benefitImage2,
   },
   {
     id: "1",
-    title: "Improve everyday",
-    text: "The app uses natural language processing to understand user queries and provide accurate and relevant responses.",
+    title: "Referrals",
+    text: "Refer other people and earn passive income from a part of their fees",
     backgroundUrl: "./src/assets/benefits/card-2.svg",
     iconUrl: benefitIcon2,
     imageUrl: benefitImage2,
@@ -261,68 +283,68 @@ export const benefits = [
   },
   {
     id: "2",
-    title: "Connect everywhere",
-    text: "Connect with the AI chatbot from anywhere, on any device, making it more accessible and convenient.",
+    title: "Easy for Beginners, Powerful for Pro's",
+    text: "Get all the tools you need to launch your token like a pro in one place",
     backgroundUrl: "./src/assets/benefits/card-3.svg",
     iconUrl: benefitIcon3,
     imageUrl: benefitImage2,
   },
-  {
-    id: "3",
-    title: "Fast responding",
-    text: "Lets users quickly find answers to their questions without having to search through multiple sources.",
-    backgroundUrl: "./src/assets/benefits/card-4.svg",
-    iconUrl: benefitIcon4,
-    imageUrl: benefitImage2,
-    light: true,
-  },
-  {
-    id: "4",
-    title: "Ask anything",
-    text: "Lets users quickly find answers to their questions without having to search through multiple sources.",
-    backgroundUrl: "./src/assets/benefits/card-5.svg",
-    iconUrl: benefitIcon1,
-    imageUrl: benefitImage2,
-  },
-  {
-    id: "5",
-    title: "Improve everyday",
-    text: "The app uses natural language processing to understand user queries and provide accurate and relevant responses.",
-    backgroundUrl: "./src/assets/benefits/card-6.svg",
-    iconUrl: benefitIcon2,
-    imageUrl: benefitImage2,
-  },
+  // {
+  //   id: "3",
+  //   title: "Fast responding",
+  //   text: "Lets users quickly find answers to their questions without having to search through multiple sources.",
+  //   backgroundUrl: "./src/assets/benefits/card-4.svg",
+  //   iconUrl: benefitIcon4,
+  //   imageUrl: benefitImage2,
+  //   light: true,
+  // },
+  // {
+  //   id: "4",
+  //   title: "Ask anything",
+  //   text: "Lets users quickly find answers to their questions without having to search through multiple sources.",
+  //   backgroundUrl: "./src/assets/benefits/card-5.svg",
+  //   iconUrl: benefitIcon1,
+  //   imageUrl: benefitImage2,
+  // },
+  // {
+  //   id: "5",
+  //   title: "Improve everyday",
+  //   text: "The app uses natural language processing to understand user queries and provide accurate and relevant responses.",
+  //   backgroundUrl: "./src/assets/benefits/card-6.svg",
+  //   iconUrl: benefitIcon2,
+  //   imageUrl: benefitImage2,
+  // },
 ];
 
 export const socials = [
-  {
-    id: "0",
-    title: "Discord",
-    iconUrl: discordBlack,
-    url: "#",
-  },
+  // {
+  //   id: "0",
+  //   title: "Discord",
+  //   iconUrl: discordBlack,
+  //   url: "#",
+  // },
   {
     id: "1",
     title: "Twitter",
     iconUrl: twitter,
-    url: "#",
+    url: "https://x.com/ozar_pro",
   },
-  {
-    id: "2",
-    title: "Instagram",
-    iconUrl: instagram,
-    url: "#",
-  },
+  // {
+  //   id: "2",
+  //   title: "Instagram",
+  //   iconUrl: instagram,
+  //   url: "#",
+  // },
   {
     id: "3",
     title: "Telegram",
     iconUrl: telegram,
-    url: "#",
+    url: "https://t.me/ozar_community",
   },
-  {
-    id: "4",
-    title: "Facebook",
-    iconUrl: facebook,
-    url: "#",
-  },
+  // {
+  //   id: "4",
+  //   title: "Facebook",
+  //   iconUrl: facebook,
+  //   url: "#",
+  // },
 ];
