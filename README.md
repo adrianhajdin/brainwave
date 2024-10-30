@@ -420,7 +420,7 @@ import {
   telegram,
   twitter,
   yourlogo,
-} from "../../public/assets";
+} from "../assets";
 
 export const navigation = [
   {
@@ -720,7 +720,7 @@ export const socials = [
 <summary><code>components/Section.jsx</code></summary>
 
 ```javascript
-import SectionSvg from "../../public/assets/svg/SectionSvg";
+import SectionSvg from "../assets/svg/SectionSvg";
 
 const Section = ({
   className,
@@ -770,7 +770,7 @@ import Heading from "./Heading";
 import Section from "./Section";
 import Tagline from "./TagLine";
 import { roadmap } from "../constants";
-import { check2, grid, loading1 } from "../../public/assets";
+import { check2, grid, loading1 } from "../assets";
 import { Gradient } from "./design/Roadmap";
 
 const Roadmap = () => (
