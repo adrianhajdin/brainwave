@@ -420,7 +420,7 @@ import {
   telegram,
   twitter,
   yourlogo,
-} from "../../public/assets";
+} from "../assets";
 
 export const navigation = [
   {
