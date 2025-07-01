@@ -28,8 +28,8 @@ const Pricing = () => {
         </div>
 
         <Heading
-          tag="Get started with Brainwave"
-          title="Pay once, use forever"
+          tag="Get started with NumenAI"
+          title="Choose your learning plan"
         />
 
         <div className="relative">
@@ -39,11 +39,12 @@ const Pricing = () => {
         </div>
 
         <div className="flex justify-center mt-10">
+          <span className="text-xs font-code font-bold tracking-wider uppercase ">Achieve more with less effort — learning just got easier.</span>
           <a
             className="text-xs font-code font-bold tracking-wider uppercase border-b"
-            href="/pricing"
+            href="https://docs.google.com/forms/d/e/1FAIpQLSet6U4qZXxAbDgBUh95HQkbciYa8g-LyIJMhjxBq0Ub4NMidQ/viewform?usp=header"
           >
-            See the full details
+            Pick your plan and begin
           </a>
         </div>
       </div>

@@ -59,7 +59,7 @@ const Header = () => {
                     : "lg:text-n-1/50"
                 } lg:leading-5 lg:hover:text-n-1 xl:px-12`}
               >
-                {item.title}
+                {item.title === "Sign in" ? "Contact us" : item.title}
               </a>
             ))}
           </div>
@@ -71,10 +71,10 @@ const Header = () => {
           href="#signup"
           className="button hidden mr-8 text-n-1/50 transition-colors hover:text-n-1 lg:block"
         >
-          New account
+          Admin Login
         </a>
-        <Button className="hidden lg:flex" href="#login">
-          Sign in
+        <Button className="hidden lg:flex" href="mailto: ashrafimran1609@gmail.com">
+          Contact us
         </Button>
 
         <Button

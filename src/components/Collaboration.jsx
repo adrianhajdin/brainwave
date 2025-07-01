@@ -10,7 +10,7 @@ const Collaboration = () => {
       <div className="container lg:flex">
         <div className="max-w-[25rem]">
           <h2 className="h2 mb-4 md:mb-8">
-            AI Chat App for seamless collaboration
+          Smart Math Education Platform for seamless collaboration
           </h2>
 
           <ul className="max-w-[22rem] mb-10 md:mb-14">
@@ -27,7 +27,7 @@ const Collaboration = () => {
             ))}
           </ul>
 
-          <Button>Try it now</Button>
+          <a href="https://docs.google.com/forms/d/e/1FAIpQLSet6U4qZXxAbDgBUh95HQkbciYa8g-LyIJMhjxBq0Ub4NMidQ/viewform?usp=header" target="_blank"><Button>Try it now</Button></a>
         </div>
 
         <div className="lg:ml-auto xl:w-[38rem] mt-4">
