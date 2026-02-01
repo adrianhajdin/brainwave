@@ -1,8 +1,8 @@
 // Comprehensive mock for src/assets/index.js
 // Every export returns a string stub
 const exports = [
-  "brainwave", "check", "check2", "loading1", "brainwaveSymbol",
-  "brainwaveWhiteSymbol", "play", "gradient", "smallSphere", "grid",
+  "logo", "check", "check2", "loading1", "logoSymbol",
+  "logoWhiteSymbol", "play", "gradient", "smallSphere", "grid",
   "yourlogo", "homeSmile", "file02", "searchMd", "plusSquare",
   "recording03", "recording01", "disc02", "chromecast", "sliders04",
   "loading", "background", "curve", "robot", "heroBackground",

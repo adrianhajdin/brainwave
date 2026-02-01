@@ -6,11 +6,14 @@ vi.mock("../Section", () => ({
   default: ({ children }) => <div data-testid="section">{children}</div>,
 }));
 
+vi.mock("../../assets", () => ({
+  logo: "logo.svg",
+}));
+
 vi.mock("../../constants", () => ({
   socials: [
-    { id: "0", title: "Discord", iconUrl: "discord.svg", url: "https://discord.com" },
+    { id: "0", title: "LinkedIn", iconUrl: "linkedin.svg", url: "https://linkedin.com" },
     { id: "1", title: "Twitter", iconUrl: "twitter.svg", url: "https://twitter.com" },
-    { id: "2", title: "Instagram", iconUrl: "instagram.svg", url: "https://instagram.com" },
   ],
 }));
 
@@ -21,29 +24,55 @@ describe("Footer", () => {
     expect(screen.getByText(new RegExp(`${year}`))).toBeInTheDocument();
   });
 
-  it("renders all rights reserved text", () => {
+  it("renders SunRegen Healthcare AG text", () => {
     render(<Footer />);
-    expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
+    const matches = screen.getAllByText(/SunRegen Healthcare AG/);
+    expect(matches.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders all social links", () => {
     render(<Footer />);
     const links = document.querySelectorAll("a[target='_blank']");
-    expect(links).toHaveLength(3);
+    expect(links).toHaveLength(2);
   });
 
   it("social links have correct href values", () => {
     render(<Footer />);
     const links = document.querySelectorAll("a[target='_blank']");
-    expect(links[0]).toHaveAttribute("href", "https://discord.com");
+    expect(links[0]).toHaveAttribute("href", "https://linkedin.com");
     expect(links[1]).toHaveAttribute("href", "https://twitter.com");
-    expect(links[2]).toHaveAttribute("href", "https://instagram.com");
   });
 
   it("renders social icon images with alt text", () => {
     render(<Footer />);
-    expect(screen.getByAltText("Discord")).toBeInTheDocument();
+    expect(screen.getByAltText("LinkedIn")).toBeInTheDocument();
     expect(screen.getByAltText("Twitter")).toBeInTheDocument();
-    expect(screen.getByAltText("Instagram")).toBeInTheDocument();
+  });
+
+  it("renders Quick Links column", () => {
+    render(<Footer />);
+    expect(screen.getByText("Quick Links")).toBeInTheDocument();
+  });
+
+  it("renders Legal column", () => {
+    render(<Footer />);
+    expect(screen.getByText("Legal")).toBeInTheDocument();
+    expect(screen.getByText("Privacy Policy")).toBeInTheDocument();
+    expect(screen.getByText("Terms of Use")).toBeInTheDocument();
+  });
+
+  it("renders Connect column", () => {
+    render(<Footer />);
+    expect(screen.getByText("Connect")).toBeInTheDocument();
+  });
+
+  it("renders forward-looking disclaimer", () => {
+    render(<Footer />);
+    expect(screen.getByText(/forward-looking statements/)).toBeInTheDocument();
+  });
+
+  it("renders Basel, Switzerland location", () => {
+    render(<Footer />);
+    expect(screen.getByText(/Basel, Switzerland/)).toBeInTheDocument();
   });
 });

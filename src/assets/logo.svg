@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="190" height="40" viewBox="0 0 190 40">
+  <g fill="none" fill-rule="evenodd">
+    <circle cx="20" cy="20" r="16" fill="none" stroke="#126a3a" stroke-width="2"/>
+    <circle cx="20" cy="20" r="10" fill="none" stroke="#8ec543" stroke-width="1.5"/>
+    <circle cx="20" cy="20" r="4" fill="#126a3a"/>
+    <path d="M20 4 L20 8 M20 32 L20 36 M4 20 L8 20 M32 20 L36 20" stroke="#126a3a" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M12 12 L15 15 M25 25 L28 28 M28 12 L25 15 M15 25 L12 28" stroke="#8ec543" stroke-width="1" stroke-linecap="round"/>
+    <text x="44" y="27" font-family="Lexend, sans-serif" font-size="22" font-weight="600" fill="#0F172A">SunRegen</text>
+  </g>
+</svg>

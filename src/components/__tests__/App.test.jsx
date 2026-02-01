@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import App from "../../App";
 
-// Mock all section components to simple stubs
 vi.mock("../Header", () => ({
   default: () => <div data-testid="header">Header</div>,
 }));
@@ -12,24 +11,16 @@ vi.mock("../Hero", () => ({
   default: () => <div data-testid="hero">Hero</div>,
 }));
 
-vi.mock("../Benefits", () => ({
-  default: () => <div data-testid="benefits">Benefits</div>,
+vi.mock("../ValueProposition", () => ({
+  default: () => <div data-testid="value-proposition">ValueProposition</div>,
 }));
 
-vi.mock("../Collaboration", () => ({
-  default: () => <div data-testid="collaboration">Collaboration</div>,
+vi.mock("../Pipeline", () => ({
+  default: () => <div data-testid="pipeline">Pipeline</div>,
 }));
 
-vi.mock("../Services", () => ({
-  default: () => <div data-testid="services">Services</div>,
-}));
-
-vi.mock("../Pricing", () => ({
-  default: () => <div data-testid="pricing">Pricing</div>,
-}));
-
-vi.mock("../Roadmap", () => ({
-  default: () => <div data-testid="roadmap">Roadmap</div>,
+vi.mock("../Milestones", () => ({
+  default: () => <div data-testid="milestones">Milestones</div>,
 }));
 
 vi.mock("../Footer", () => ({
@@ -52,11 +43,9 @@ describe("App", () => {
     renderApp();
     expect(screen.getByTestId("header")).toBeInTheDocument();
     expect(screen.getByTestId("hero")).toBeInTheDocument();
-    expect(screen.getByTestId("benefits")).toBeInTheDocument();
-    expect(screen.getByTestId("collaboration")).toBeInTheDocument();
-    expect(screen.getByTestId("services")).toBeInTheDocument();
-    expect(screen.getByTestId("pricing")).toBeInTheDocument();
-    expect(screen.getByTestId("roadmap")).toBeInTheDocument();
+    expect(screen.getByTestId("value-proposition")).toBeInTheDocument();
+    expect(screen.getByTestId("pipeline")).toBeInTheDocument();
+    expect(screen.getByTestId("milestones")).toBeInTheDocument();
     expect(screen.getByTestId("footer")).toBeInTheDocument();
   });
 
@@ -73,11 +62,9 @@ describe("App", () => {
     expect(testIds).toEqual([
       "header",
       "hero",
-      "benefits",
-      "collaboration",
-      "services",
-      "pricing",
-      "roadmap",
+      "value-proposition",
+      "pipeline",
+      "milestones",
       "footer",
     ]);
   });
