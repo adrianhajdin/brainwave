@@ -22,7 +22,7 @@ export const navigation = [
   {
     id: "3",
     title: "Investors",
-    url: "#investors",
+    url: "#science",
   },
   {
     id: "4",

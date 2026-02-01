@@ -24,7 +24,7 @@ SunRegen Healthcare is a static React landing page for a Swiss biotech company d
 - **Design components:** `components/design/` contains purely decorative elements (gradients, curves, background circles). These are separated from functional components (e.g., `design/Hero.jsx`, `design/Header.jsx`).
 - **Data-driven rendering:** All repeated content (navigation items, value propositions, pipeline programs, milestones, social links) is defined in `src/constants/index.js` and rendered via `.map()`.
 - **Reusable primitives:** `Button.jsx` (with SVG border gradient), `Heading.jsx` (section title + optional tagline + text), `Tagline.jsx` (bracketed uppercase text).
-- **SVG as components:** SVG graphics live in `src/assets/svg/` as React functional components (Arrow, Brackets, ButtonSvg, MenuSvg, etc.).
+- **SVG as components:** `src/assets/svg/` contains SVG React functional components (Arrow, Brackets, ButtonSvg, MenuSvg, etc.).
 
 ### Styling System
 
@@ -40,7 +40,7 @@ All images are imported through `src/assets/index.js`. Logo files: `logo.svg`, `
 
 ### Navigation
 
-Hash-based scrolling (`#about`, `#science`, `#news`, `#investors`, `#contact`). The Header component handles mobile menu toggle with `scroll-lock` to prevent body scroll. Some nav items have `onlyMobile: true` to only show in the hamburger menu.
+Hash-based scrolling (`#hero`, `#about`, `#science`, `#news`, `#contact`). Section IDs map to: Hero → `hero`, ValueProposition → `about`, Pipeline → `science`, Milestones → `news`, Footer → `contact`. The "Investors" nav item links to `#science` (Pipeline). The Header component handles mobile menu toggle with `scroll-lock` to prevent body scroll. Some nav items have `onlyMobile: true` to only show in the hamburger menu.
 
 ## Code Conventions
 

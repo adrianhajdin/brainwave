@@ -4,7 +4,7 @@ import { socials } from "../constants";
 
 const Footer = () => {
   return (
-    <Section className="!px-0 !py-0">
+    <Section className="!px-0 !py-0" id="contact">
       <div className="bg-n-1 text-n-8">
         <div className="container py-16">
           <div className="grid lg:grid-cols-5 gap-12">
@@ -28,6 +28,7 @@ const Footer = () => {
                     key={item.id}
                     href={item.url}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-center w-10 h-10 bg-n-8/10 rounded-full transition-colors hover:bg-n-8/20"
                   >
                     <img
@@ -50,9 +51,8 @@ const Footer = () => {
                 <li><a href="#about" className="text-n-8/60 hover:text-n-8 transition-colors">About</a></li>
                 <li><a href="#science" className="text-n-8/60 hover:text-n-8 transition-colors">Science</a></li>
                 <li><a href="#news" className="text-n-8/60 hover:text-n-8 transition-colors">News</a></li>
-                <li><a href="#investors" className="text-n-8/60 hover:text-n-8 transition-colors">Investors</a></li>
+                <li><a href="#science" className="text-n-8/60 hover:text-n-8 transition-colors">Investors</a></li>
                 <li><a href="#contact" className="text-n-8/60 hover:text-n-8 transition-colors">Contact</a></li>
-                <li><a href="#" className="text-n-8/60 hover:text-n-8 transition-colors">Careers</a></li>
               </ul>
             </div>
 
