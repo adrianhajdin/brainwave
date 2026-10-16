@@ -23,6 +23,13 @@ struct tracker_fix {
 struct tracker_config {
 	uint32_t moving_interval_s;
 	bool lost_mode;
+	/* Night watch: shorter interval while moving in a UTC window (the
+	 * backend converts the owner's local window and re-sends it daily).
+	 */
+	bool night_mode;
+	uint16_t night_start_utc_min; /* 0..1439 */
+	uint16_t night_end_utc_min;   /* 0..1439, may be < start (wraps midnight) */
+	uint32_t night_interval_s;
 };
 
 #endif /* TRACKER_H_ */

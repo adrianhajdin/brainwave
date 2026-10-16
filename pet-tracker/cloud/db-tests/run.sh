@@ -12,5 +12,7 @@ trap 'psql -q -d postgres -c "drop database if exists $DB" >/dev/null' EXIT
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f supabase_stub.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f ../supabase/migrations/20261016000100_tracker_core.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f ../supabase/migrations/20261016000300_cats_and_phone_trackers.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f ../supabase/migrations/20261016000400_household_alerts_insights.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f tracker_test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f cats_test.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f household_test.sql

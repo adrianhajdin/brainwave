@@ -18,6 +18,7 @@ import mqtt, { type IPublishPacket } from "mqtt";
 
 import { AgnssClient, RateLimiter } from "./agnss.ts";
 import { loadConfig } from "./config.ts";
+import { ConfigSync } from "./configSync.ts";
 import { TelemetryStore } from "./db.ts";
 import { log, setLogLevel } from "./log.ts";
 import { parseTopic, validateAgnssRequest, validateTelemetry } from "./schema.ts";
@@ -124,6 +125,19 @@ client.on("connect", (connack) => {
     else log.info("subscribed", { granted: granted?.map((g) => `${g.topic}@${g.qos}`) });
   });
 });
+// Lost mode / night watch / interval changes -> retained config downlink.
+const configSync =
+  cfg.CONFIG_SYNC === "on"
+    ? new ConfigSync(
+        cfg.CONFIG_DATABASE_URL ?? cfg.DATABASE_URL,
+        cfg.databaseCa ? { ca: cfg.databaseCa, rejectUnauthorized: true } : { rejectUnauthorized: true },
+        async (topic, payload) => {
+          await client.publishAsync(topic, payload, { qos: 1, retain: true });
+        },
+      )
+    : null;
+configSync?.start();
+
 client.on("reconnect", () => log.warn("broker reconnecting"));
 client.on("error", (err) => log.error("broker error", { error: String(err) }));
 
@@ -142,6 +156,7 @@ health.listen(cfg.HEALTH_PORT);
 async function shutdown(signal: string): Promise<void> {
   log.info("shutting down", { signal });
   health.close();
+  await configSync?.stop();
   await client.endAsync(); // waits for in-flight acks
   await store.close();
   process.exit(0);

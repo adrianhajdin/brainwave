@@ -94,3 +94,15 @@ test("rate limiter", () => {
   now += 600_000;
   assert.equal(rl.allow(ID), true);
 });
+
+import { toDownlink } from "../src/configSync.ts";
+
+test("collar config: database notification becomes a retained downlink", () => {
+  const cfg = { interval_s: 900, lost_mode: true, night_mode: true, night_start_utc_min: 1140, night_end_utc_min: 300, night_interval_s: 300 };
+  const d = toDownlink(JSON.stringify({ device_uid: ID, config: cfg }));
+  assert.deepEqual(d, { topic: `pt/v1/${ID}/down/config`, payload: JSON.stringify(cfg) });
+  assert.equal(toDownlink(JSON.stringify({ device_uid: "pt-1", config: cfg })), null, "bad device id");
+  assert.equal(toDownlink(JSON.stringify({ device_uid: ID, config: { ...cfg, interval_s: 5 } })), null, "out of range");
+  assert.equal(toDownlink("{"), null, "invalid JSON");
+  assert.equal(toDownlink(undefined), null);
+});

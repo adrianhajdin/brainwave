@@ -31,6 +31,7 @@
 LOG_MODULE_REGISTER(tracker, CONFIG_TRACKER_LOG_LEVEL);
 
 #define LOST_MODE_INTERVAL_S      60
+#define NIGHT_STATIONARY_INTERVAL_S 3600
 #define MIN_REPORT_SPACING_MS     (2 * MSEC_PER_SEC * 60)
 #define NETWORK_WAIT              K_SECONDS(60)
 #define DOWNLINK_DRAIN_MS         1000
@@ -52,6 +53,10 @@ static enum app_state state = STATE_MOVING;
 static struct tracker_config config = {
 	.moving_interval_s = CONFIG_TRACKER_MOVING_INTERVAL_S,
 	.lost_mode = false,
+	.night_mode = false,
+	.night_start_utc_min = 19 * 60,
+	.night_end_utc_min = 5 * 60,
+	.night_interval_s = 300,
 };
 static char device_id[TRACKER_DEVICE_ID_LEN];
 static int wdt_channel = -1;
@@ -112,20 +117,78 @@ static void motion_handler(bool moving)
 	post(moving ? EVT_MOTION_START : EVT_MOTION_STOP);
 }
 
+/* UTC clock derived from the last GNSS fix (the app core has no RTC sync). */
+static int64_t utc_base_s = -1;
+static int64_t utc_base_uptime_ms;
+
+static void utc_sync(int64_t utc_s)
+{
+	utc_base_s = utc_s;
+	utc_base_uptime_ms = k_uptime_get();
+}
+
+static bool night_watch_active(void)
+{
+	int64_t now_s;
+	uint16_t minute;
+
+	if (!config.night_mode || utc_base_s < 0) {
+		return false;
+	}
+
+	now_s = utc_base_s + (k_uptime_get() - utc_base_uptime_ms) / MSEC_PER_SEC;
+	minute = (uint16_t)((now_s / 60) % 1440);
+
+	if (config.night_start_utc_min > config.night_end_utc_min) {
+		/* window wraps midnight, e.g. 19:00-05:00 UTC */
+		return minute >= config.night_start_utc_min || minute < config.night_end_utc_min;
+	}
+	return minute >= config.night_start_utc_min && minute < config.night_end_utc_min;
+}
+
+/* Seconds until the night window opens or closes (UINT32_MAX if unknown). */
+static uint32_t seconds_to_night_edge(void)
+{
+	int64_t now_s;
+	uint32_t minute, edge, delta_min;
+
+	if (!config.night_mode || utc_base_s < 0) {
+		return UINT32_MAX;
+	}
+
+	now_s = utc_base_s + (k_uptime_get() - utc_base_uptime_ms) / MSEC_PER_SEC;
+	minute = (uint32_t)((now_s / 60) % 1440);
+	edge = night_watch_active() ? config.night_end_utc_min : config.night_start_utc_min;
+	delta_min = (edge + 1440 - minute) % 1440;
+
+	return MAX(delta_min, 1U) * 60U;
+}
+
+static bool scheduled_night;
+
 static void reschedule(void)
 {
 	uint32_t period_s;
+	uint32_t first_s;
+	bool night = night_watch_active();
+
+	scheduled_night = night;
 
 	if (config.lost_mode) {
 		period_s = LOST_MODE_INTERVAL_S;
 	} else if (state == STATE_MOVING) {
-		period_s = config.moving_interval_s;
+		period_s = night ? MIN(config.night_interval_s, config.moving_interval_s)
+				 : config.moving_interval_s;
 	} else {
-		period_s = CONFIG_TRACKER_STATIONARY_INTERVAL_S;
+		/* Asleep at night: hourly heartbeat instead of every 6 h. */
+		period_s = night ? MIN(NIGHT_STATIONARY_INTERVAL_S, CONFIG_TRACKER_STATIONARY_INTERVAL_S)
+				 : CONFIG_TRACKER_STATIONARY_INTERVAL_S;
 	}
 
-	k_timer_start(&report_timer, K_SECONDS(period_s), K_SECONDS(period_s));
-	LOG_INF("Next reports every %u s", period_s);
+	/* Wake up at the night-window edge even during a long sleep interval. */
+	first_s = MIN(period_s, seconds_to_night_edge());
+	k_timer_start(&report_timer, K_SECONDS(first_s), K_SECONDS(period_s));
+	LOG_INF("Next report in %u s, then every %u s%s", first_s, period_s, night ? " (night watch)" : "");
 }
 
 /* --------------------------------------------------------------------------
@@ -174,6 +237,7 @@ static void acquire_fix(void)
 			int batt = battery_percent_get();
 
 			location_fix_get(&fix);
+			utc_sync(fix.ts);
 			fix.seq = fix_seq++;
 			fix.batt_pct = batt < 0 ? 0 : (uint8_t)batt;
 			backlog_push(&fix);
@@ -254,6 +318,11 @@ static void report(void)
 	acquire_fix();
 	task_wdt_feed(wdt_channel);
 	cloud_session();
+
+	/* Entering or leaving the night window changes the cadence. */
+	if (night_watch_active() != scheduled_night) {
+		reschedule();
+	}
 }
 
 /* --------------------------------------------------------------------------

@@ -92,11 +92,19 @@ static uint16_t message_id_next(void)
 struct config_msg {
 	int32_t interval_s;
 	bool lost_mode;
+	bool night_mode;
+	int32_t night_start_utc_min;
+	int32_t night_end_utc_min;
+	int32_t night_interval_s;
 };
 
 static const struct json_obj_descr config_descr[] = {
 	JSON_OBJ_DESCR_PRIM(struct config_msg, interval_s, JSON_TOK_NUMBER),
 	JSON_OBJ_DESCR_PRIM(struct config_msg, lost_mode, JSON_TOK_TRUE),
+	JSON_OBJ_DESCR_PRIM(struct config_msg, night_mode, JSON_TOK_TRUE),
+	JSON_OBJ_DESCR_PRIM(struct config_msg, night_start_utc_min, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct config_msg, night_end_utc_min, JSON_TOK_NUMBER),
+	JSON_OBJ_DESCR_PRIM(struct config_msg, night_interval_s, JSON_TOK_NUMBER),
 };
 
 struct fota_msg {
@@ -127,6 +135,17 @@ static void on_config(char *json, size_t len)
 
 	cfg.moving_interval_s = (uint32_t)msg.interval_s;
 	cfg.lost_mode = (fields & BIT(1)) ? msg.lost_mode : false;
+
+	/* Night watch is optional; accept it only if the whole window is valid. */
+	if ((fields & (BIT(2) | BIT(3) | BIT(4) | BIT(5))) == (BIT(2) | BIT(3) | BIT(4) | BIT(5)) &&
+	    msg.night_start_utc_min >= 0 && msg.night_start_utc_min < 1440 &&
+	    msg.night_end_utc_min >= 0 && msg.night_end_utc_min < 1440 &&
+	    msg.night_interval_s >= 60 && msg.night_interval_s <= 3600) {
+		cfg.night_mode = msg.night_mode;
+		cfg.night_start_utc_min = (uint16_t)msg.night_start_utc_min;
+		cfg.night_end_utc_min = (uint16_t)msg.night_end_utc_min;
+		cfg.night_interval_s = (uint32_t)msg.night_interval_s;
+	}
 
 	if (app_handlers && app_handlers->config) {
 		app_handlers->config(&cfg);
