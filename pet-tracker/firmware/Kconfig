@@ -1,0 +1,80 @@
+#
+# Pet tracker application configuration
+#
+menu "Pet tracker"
+
+config TRACKER_MQTT_BROKER_HOSTNAME
+	string "MQTT broker hostname"
+	default "mqtt.tracker.example.eu"
+	help
+	  Hostname of the MQTTS broker (AWS IoT Core ATS endpoint, HiveMQ,
+	  EMQX, ...). Also used for TLS SNI and server hostname verification.
+
+config TRACKER_MQTT_BROKER_PORT
+	int "MQTT broker port"
+	default 8883
+
+config TRACKER_SEC_TAG
+	int "Modem security tag holding CA, client certificate and private key"
+	default 201
+	help
+	  Credentials are stored in the modem's protected key storage and are
+	  never readable by the application core. The private key should be
+	  generated inside the modem (AT%KEYGEN) during manufacturing.
+
+config TRACKER_TLS_ECDSA_ONLY
+	bool "Restrict TLS to ECDHE-ECDSA cipher suites"
+	default y
+	help
+	  Forward secrecy with P-256 certificates only. The broker must present
+	  an ECC server certificate (AWS IoT: Amazon Root CA 3).
+
+config TRACKER_MQTT_KEEPALIVE_S
+	int "MQTT keep-alive (seconds)"
+	default 1200
+	help
+	  Long enough that the TCP/TLS session survives the GNSS search between
+	  an A-GNSS download and the telemetry publish without extra pings.
+
+config TRACKER_MOVING_INTERVAL_S
+	int "Report interval while moving (seconds)"
+	default 900
+	range 60 86400
+
+config TRACKER_STATIONARY_INTERVAL_S
+	int "Heartbeat interval while stationary (seconds)"
+	default 21600
+	range 900 86400
+
+config TRACKER_GNSS_TIMEOUT_S
+	int "GNSS fix timeout (seconds)"
+	default 90
+	range 30 600
+	help
+	  Upper bound on GNSS on-time per report. With fresh A-GNSS data a fix
+	  typically takes 2-15 s outdoors; the timeout caps the cost of
+	  indoor / no-sky situations.
+
+config TRACKER_AGNSS_WAIT_S
+	int "Max wait for A-GNSS assistance data (seconds)"
+	default 20
+
+config TRACKER_BACKLOG_SIZE
+	int "Number of fixes buffered while out of coverage"
+	default 32
+	range 1 256
+
+config TRACKER_WDT_TIMEOUT_S
+	int "Watchdog timeout (seconds)"
+	default 900
+	help
+	  Must exceed the worst-case report cycle (LTE search + A-GNSS + GNSS
+	  timeout + MQTT session).
+
+module = TRACKER
+module-str = Pet tracker
+source "subsys/logging/Kconfig.template.log_config"
+
+endmenu
+
+source "Kconfig.zephyr"

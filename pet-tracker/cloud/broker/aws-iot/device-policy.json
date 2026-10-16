@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ConnectOnlyAsOwnThingWithAttachedCert",
+      "Effect": "Allow",
+      "Action": "iot:Connect",
+      "Resource": "arn:aws:iot:eu-central-1:ACCOUNT_ID:client/${iot:Connection.Thing.ThingName}",
+      "Condition": { "Bool": { "iot:Connection.Thing.IsAttached": "true" } }
+    },
+    {
+      "Sid": "PublishOwnUplinksOnly",
+      "Effect": "Allow",
+      "Action": "iot:Publish",
+      "Resource": [
+        "arn:aws:iot:eu-central-1:ACCOUNT_ID:topic/pt/v1/${iot:Connection.Thing.ThingName}/telemetry",
+        "arn:aws:iot:eu-central-1:ACCOUNT_ID:topic/pt/v1/${iot:Connection.Thing.ThingName}/agnss/req"
+      ]
+    },
+    {
+      "Sid": "SubscribeOwnDownlinksOnly",
+      "Effect": "Allow",
+      "Action": "iot:Subscribe",
+      "Resource": "arn:aws:iot:eu-central-1:ACCOUNT_ID:topicfilter/pt/v1/${iot:Connection.Thing.ThingName}/down/+"
+    },
+    {
+      "Sid": "ReceiveOwnDownlinksOnly",
+      "Effect": "Allow",
+      "Action": "iot:Receive",
+      "Resource": "arn:aws:iot:eu-central-1:ACCOUNT_ID:topic/pt/v1/${iot:Connection.Thing.ThingName}/down/*"
+    }
+  ]
+}
