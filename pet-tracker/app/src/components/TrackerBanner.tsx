@@ -7,16 +7,16 @@ import { radius, space, useTheme } from '../theme';
 /** Shows that this phone is acting as a cat's collar, from any screen. */
 export function TrackerBanner({ onPress }: { onPress?: () => void }) {
   const t = useTheme();
-  const { tracker, cats } = useApp();
+  const { tracker, cats, effectiveIntervalS } = useApp();
   if (tracker.state === 'off') return null;
 
   const cat = cats.find((c) => c.id === tracker.catId);
   const name = cat?.name ?? 'your cat';
   const text = {
     starting: `Starting GPS for ${name}…`,
-    tracking: `This phone is ${name}'s tracker · ${tracker.sent} fix${tracker.sent === 1 ? '' : 'es'} sent${
-      tracker.lastSentAt ? ` · last ${relativeTime(tracker.lastSentAt)}` : ''
-    }`,
+    tracking: `This phone is ${name}'s tracker${tracker.mode === 'background' ? ' (also with screen off)' : ''} · every ${
+      effectiveIntervalS < 60 ? `${effectiveIntervalS} s` : `${Math.round(effectiveIntervalS / 60)} min`
+    } · ${tracker.sent} fix${tracker.sent === 1 ? '' : 'es'} sent${tracker.lastSentAt ? ` · last ${relativeTime(tracker.lastSentAt)}` : ''}`,
     denied: 'Location permission denied: allow it in Settings to track with this phone.',
     error: `Tracking error: ${tracker.error ?? 'unknown'}`,
   }[tracker.state];

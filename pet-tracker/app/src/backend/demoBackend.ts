@@ -1,23 +1,29 @@
 /**
  * Demo backend: no account, no server. Two simulated cats wander around, and
  * any cat you mark as "tracked by this phone" follows the phone's real GPS.
- * Geofence enter/exit uses the same hysteresis rule as the database.
+ * Zone alerts, heatmap and activity use the same rules as the database.
  */
-import { insideZone, offset } from '../geo';
-import type {
-  Backend,
-  Cat,
-  CatEvent,
-  HomeZone,
-  LiveHandlers,
-  PhoneFix,
-  ReportResult,
-  TrackPoint,
+import { binHeatmap, estimateActivity, insideZone, offset } from '../geo';
+import {
+  DEFAULT_NIGHT,
+  type ActivityDay,
+  type Backend,
+  type Cat,
+  type CatEvent,
+  type HeatCell,
+  type HomeZone,
+  type HouseholdPerson,
+  type LiveHandlers,
+  type NightWatch,
+  type PhoneFix,
+  type ReportResult,
+  type TrackPoint,
 } from './types';
 
 const DEFAULT_CENTER = { lat: 52.3676, lng: 4.9041 }; // Amsterdam, until the phone reports
 const SIM_TICK_MS = 4000;
-const MAX_TRACK = 2000;
+const MAX_TRACK = 4000;
+const DEMO_USER = 'demo-user';
 
 let nextId = 1;
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${(nextId++).toString(36)}`;
@@ -29,11 +35,12 @@ interface SimState {
 
 export class DemoBackend implements Backend {
   readonly mode = 'demo' as const;
+  readonly userId = DEMO_USER;
   readonly userLabel = 'Demo mode';
 
   #cats = new Map<string, Cat>();
   #tracks = new Map<string, TrackPoint[]>();
-  #zones = new Map<string, HomeZone[]>();
+  #zones = new Map<string, HomeZone[]>(); // key: catId or '*' for all cats
   #zoneState = new Map<string, boolean>(); // `${catId}:${zoneId}`
   #events: CatEvent[] = [];
   #sim = new Map<string, SimState>();
@@ -47,23 +54,40 @@ export class DemoBackend implements Backend {
     this.#seed('Pluis', '#EC4899', 320, 210);
   }
 
+  #newCat(name: string, color: string, kind: Cat['kind']): Cat {
+    return {
+      id: newId(kind === 'phone' ? 'ph' : 'sim'),
+      name, color, kind, ownerId: DEMO_USER,
+      lastLat: null, lastLng: null, lastAccuracyM: null, lastBatteryPct: null, lastFixAt: null,
+      lostMode: false, lostModeSince: null, night: { ...DEFAULT_NIGHT }, photoPath: null,
+    };
+  }
+
   #seed(name: string, color: string, distance: number, bearing: number) {
-    const id = newId('sim');
+    const cat = this.#newCat(name, color, 'collar');
     const p = offset(this.#center.lat, this.#center.lng, distance, bearing);
-    this.#cats.set(id, {
-      id, name, color, kind: 'collar',
-      lastLat: p.lat, lastLng: p.lng, lastAccuracyM: 8, lastBatteryPct: 64 + Math.round(Math.random() * 30),
-      lastFixAt: new Date().toISOString(),
+    Object.assign(cat, {
+      lastLat: p.lat, lastLng: p.lng, lastAccuracyM: 8,
+      lastBatteryPct: 64 + Math.round(Math.random() * 30), lastFixAt: new Date().toISOString(),
     });
-    this.#sim.set(id, { heading: Math.random() * 360, napUntil: 0 });
-    // Some history so route replay has something to show.
+    this.#cats.set(cat.id, cat);
+    this.#sim.set(cat.id, { heading: Math.random() * 360, napUntil: 0 });
+
+    // Three days of history, so route, heatmap and activity have content:
+    // naps at a few favourite spots, short strolls, a longer night walk.
+    const spots = [0, 1, 2].map((i) => offset(p.lat, p.lng, 60 + i * 70, bearing + i * 110));
     const pts: TrackPoint[] = [];
-    let q = offset(p.lat, p.lng, 260, bearing + 180);
-    for (let i = 40; i > 0; i--) {
-      q = offset(q.lat, q.lng, 6 + Math.random() * 8, bearing + Math.sin(i / 4) * 60);
-      pts.push({ at: new Date(Date.now() - i * 60_000).toISOString(), lat: q.lat, lng: q.lng, accuracyM: 8, batteryPct: 80 });
+    const now = Date.now();
+    for (let m = 3 * 24 * 60; m > 0; m -= 15) {
+      const at = now - m * 60_000;
+      const hour = new Date(at).getHours();
+      const night = hour >= 21 || hour < 6;
+      const spot = spots[Math.floor((m / 180) % spots.length)]!;
+      const wander = night ? 40 + Math.random() * 160 : Math.random() < 0.7 ? Math.random() * 8 : 20 + Math.random() * 60;
+      const q = offset(spot.lat, spot.lng, wander, Math.random() * 360);
+      pts.push({ at: new Date(at).toISOString(), lat: q.lat, lng: q.lng, accuracyM: 6 + Math.random() * 10, batteryPct: 80 });
     }
-    this.#tracks.set(id, pts);
+    this.#tracks.set(cat.id, pts);
   }
 
   /** Re-anchor the simulated cats near the phone the first time it reports. */
@@ -83,7 +107,11 @@ export class DemoBackend implements Backend {
   }
 
   #emitCat(cat: Cat) {
-    for (const l of this.#listeners) l.onCat({ ...cat });
+    for (const l of this.#listeners) l.onCat({ ...cat, night: { ...cat.night } });
+  }
+
+  #zonesFor(catId: string): HomeZone[] {
+    return [...(this.#zones.get('*') ?? []), ...(this.#zones.get(catId) ?? [])];
   }
 
   #record(cat: Cat, point: TrackPoint) {
@@ -98,7 +126,7 @@ export class DemoBackend implements Backend {
     });
     this.#emitCat(cat);
 
-    for (const zone of this.#zones.get(cat.id) ?? []) {
+    for (const zone of this.#zonesFor(cat.id)) {
       const key = `${cat.id}:${zone.id}`;
       const was = this.#zoneState.has(key) ? this.#zoneState.get(key)! : null;
       const now = insideZone(zone, point, was);
@@ -116,8 +144,8 @@ export class DemoBackend implements Backend {
     for (const [id, s] of this.#sim) {
       const cat = this.#cats.get(id);
       if (!cat || cat.lastLat === null || cat.lastLng === null) continue;
-      if (now < s.napUntil) continue; // cats sleep a lot
-      if (Math.random() < 0.08) {
+      if (now < s.napUntil && !cat.lostMode) continue; // cats sleep a lot
+      if (Math.random() < 0.08 && !cat.lostMode) {
         s.napUntil = now + 20_000 + Math.random() * 40_000;
         continue;
       }
@@ -135,7 +163,7 @@ export class DemoBackend implements Backend {
   };
 
   async listCats(): Promise<Cat[]> {
-    return [...this.#cats.values()].map((c) => ({ ...c }));
+    return [...this.#cats.values()].map((c) => ({ ...c, night: { ...c.night } }));
   }
 
   subscribe(handlers: LiveHandlers): () => void {
@@ -153,24 +181,26 @@ export class DemoBackend implements Backend {
   async addPhoneCat(name: string, color: string): Promise<string> {
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 64) throw new Error('Name must be 1-64 characters');
-    const id = newId('ph');
-    const cat: Cat = {
-      id, name: trimmed, color, kind: 'phone',
-      lastLat: null, lastLng: null, lastAccuracyM: null, lastBatteryPct: null, lastFixAt: null,
-    };
-    this.#cats.set(id, cat);
+    const cat = this.#newCat(trimmed, color, 'phone');
+    this.#cats.set(cat.id, cat);
     this.#emitCat(cat);
-    return id;
+    return cat.id;
   }
 
   async claimCollar(): Promise<string> {
     throw new Error('Collars can only be claimed when connected to the real backend.');
   }
 
-  async renameCat(id: string, name: string, color: string): Promise<void> {
+  #cat(id: string): Cat {
     const cat = this.#cats.get(id);
     if (!cat) throw new Error('Cat not found');
-    Object.assign(cat, { name: name.trim(), color });
+    return cat;
+  }
+
+  async updateCat(id: string, changes: { name?: string; color?: string }): Promise<void> {
+    const cat = this.#cat(id);
+    if (changes.name !== undefined) cat.name = changes.name.trim();
+    if (changes.color !== undefined) cat.color = changes.color;
     this.#emitCat(cat);
   }
 
@@ -182,13 +212,42 @@ export class DemoBackend implements Backend {
     for (const l of this.#listeners) l.onCatRemoved?.(id);
   }
 
+  async setPhoto(catId: string, localUri: string): Promise<void> {
+    const cat = this.#cat(catId);
+    cat.photoPath = localUri;
+    this.#emitCat(cat);
+  }
+
+  async removePhoto(catId: string): Promise<void> {
+    const cat = this.#cat(catId);
+    cat.photoPath = null;
+    this.#emitCat(cat);
+  }
+
+  async photoUrl(path: string): Promise<string | null> {
+    return path;
+  }
+
+  async setLostMode(catId: string, on: boolean): Promise<void> {
+    const cat = this.#cat(catId);
+    cat.lostMode = on;
+    cat.lostModeSince = on ? new Date().toISOString() : null;
+    this.#emitCat(cat);
+  }
+
+  async setNightWatch(catId: string, night: NightWatch): Promise<void> {
+    const cat = this.#cat(catId);
+    cat.night = { ...night };
+    this.#emitCat(cat);
+  }
+
   async reportLocation(catId: string, fix: PhoneFix): Promise<ReportResult> {
     const cat = this.#cats.get(catId);
     if (!cat || cat.kind !== 'phone') return 'rejected';
     this.#recenter(fix.lat, fix.lng);
     this.#record(cat, {
       at: fix.at, lat: fix.lat, lng: fix.lng, accuracyM: fix.accuracyM,
-      batteryPct: fix.batteryPct ?? cat.lastBatteryPct ?? 0,
+      batteryPct: fix.batteryPct ?? cat.lastBatteryPct ?? 100,
     });
     return 'ok';
   }
@@ -198,33 +257,59 @@ export class DemoBackend implements Backend {
     return (this.#tracks.get(catId) ?? []).filter((p) => Date.parse(p.at) >= since);
   }
 
-  async getZones(catId: string): Promise<HomeZone[]> {
-    return [...(this.#zones.get(catId) ?? [])];
+  async getHeatmap(catId: string, sinceIso: string): Promise<HeatCell[]> {
+    return binHeatmap(await this.getTrack(catId, sinceIso));
   }
 
-  async addZone(catId: string, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
-    const zones = this.#zones.get(catId) ?? [];
-    const zone = { id: newId('zone'), name, lat, lng, radiusM };
-    zones.push(zone);
-    this.#zones.set(catId, zones);
-    // Start from the cat's current side of the fence so the first exit alerts.
-    const cat = this.#cats.get(catId);
-    if (cat?.lastLat != null && cat.lastLng != null) {
-      this.#zoneState.set(
-        `${catId}:${zone.id}`,
-        insideZone(zone, { lat: cat.lastLat, lng: cat.lastLng, accuracyM: cat.lastAccuracyM ?? 0 }, null),
-      );
+  async getActivity(catId: string, days: number): Promise<ActivityDay[]> {
+    const cat = this.#cat(catId);
+    const track = await this.getTrack(catId, new Date(Date.now() - days * 86_400_000).toISOString());
+    const home = this.#zonesFor(catId)[0] ?? null;
+    return estimateActivity(track, { nightStartMin: cat.night.startMin, nightEndMin: cat.night.endMin, home });
+  }
+
+  async getZones(catId: string): Promise<HomeZone[]> {
+    return this.#zonesFor(catId);
+  }
+
+  async addZone(catId: string | null, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
+    const key = catId ?? '*';
+    const zone: HomeZone = { id: newId('zone'), name: name.trim() || 'Home', lat, lng, radiusM, allCats: catId === null };
+    this.#zones.set(key, [...(this.#zones.get(key) ?? []), zone]);
+    // Start from each cat's current side of the fence so the first exit alerts.
+    const cats = catId ? [this.#cat(catId)] : [...this.#cats.values()];
+    for (const cat of cats) {
+      if (cat.lastLat != null && cat.lastLng != null) {
+        this.#zoneState.set(`${cat.id}:${zone.id}`, insideZone(zone, { lat: cat.lastLat, lng: cat.lastLng, accuracyM: cat.lastAccuracyM ?? 0 }, null));
+      }
     }
   }
 
   async removeZone(zoneId: string): Promise<void> {
-    for (const [catId, zones] of this.#zones) {
-      this.#zones.set(catId, zones.filter((z) => z.id !== zoneId));
+    for (const [key, zones] of this.#zones) {
+      this.#zones.set(key, zones.filter((z) => z.id !== zoneId));
     }
   }
 
   async getEvents(catId: string): Promise<CatEvent[]> {
     return this.#events.filter((e) => e.catId === catId).slice(0, 50);
+  }
+
+  async createInvite(): Promise<string> {
+    throw new Error('Sharing needs an account. Sign in with the real backend to invite your household.');
+  }
+  async acceptInvite(): Promise<void> {
+    throw new Error('Sharing needs an account.');
+  }
+  async listHousehold(): Promise<HouseholdPerson[]> {
+    return [];
+  }
+  async removeMember(): Promise<void> {}
+  async leaveHousehold(): Promise<void> {}
+  async registerPushToken(): Promise<void> {}
+  async unregisterPushToken(): Promise<void> {}
+  async deleteAccount(): Promise<void> {
+    await this.signOut();
   }
 
   async signOut(): Promise<void> {

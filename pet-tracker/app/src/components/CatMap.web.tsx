@@ -1,41 +1,60 @@
 /**
  * Web preview: react-native-maps has no web implementation, so the browser
  * build shows a dependency-free "radar" (equirectangular projection) with the
- * same layers: zones, accuracy halos, route and cats. Phones get real maps.
+ * same layers as the phone map: zones, heatmap glow, smoothed route, accuracy
+ * halos and cats. Phones get real maps.
  */
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
-import { distanceM, formatDistance } from '../geo';
+import type { Cat } from '../backend/types';
+import { formatDistance, smoothTrack } from '../geo';
 import { useTheme } from '../theme';
 import type { CatMapProps } from './CatMap.types';
+import { heatBlobs } from './heat';
 import { CatAvatar } from './ui';
+import { catBadge, usePhotoUrl } from './usePhotoUrl';
 
-export function CatMap({ cats, focusId, track, trackColor, cursor, zones, onSelectCat, style }: CatMapProps) {
+function RadarCat({ cat, x, y, onPress }: { cat: Cat; x: number; y: number; onPress?: () => void }) {
+  const t = useTheme();
+  const photoUrl = usePhotoUrl(cat.photoPath);
+  return (
+    <Pressable accessibilityLabel={cat.name} onPress={onPress} style={{ position: 'absolute', left: x - 18, top: y - 28 }}>
+      <CatAvatar name={cat.name} color={cat.color} size={36} ring={cat.lostMode ? t.danger : '#fff'} photoUrl={photoUrl} badge={catBadge(cat, t)} />
+    </Pressable>
+  );
+}
+
+export function CatMap({
+  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, style,
+}: CatMapProps) {
   const t = useTheme();
   const [size, setSize] = useState({ w: 0, h: 0 });
   const placed = cats.filter((c) => c.lastLat !== null && c.lastLng !== null);
   const focus = focusId ? placed.find((c) => c.id === focusId) : undefined;
+  const smooth = useMemo(() => (track && track.length > 1 ? smoothTrack(track) : []), [track]);
+  const blobs = useMemo(() => heatBlobs(heat ?? []), [heat]);
 
   const view = useMemo(() => {
     const pts = [
       ...(focus ? [focus] : placed).map((c) => ({ lat: c.lastLat!, lng: c.lastLng! })),
-      ...(track ?? []).map((p) => ({ lat: p.lat, lng: p.lng })),
+      ...smooth,
+      ...(heat ?? []).slice(0, 60),
     ];
-    for (const z of zones ?? []) {
+    for (const z of [...(zones ?? []), ...(draftZone ? [{ ...draftZone }] : [])]) {
       const dLat = z.radiusM / 111_320;
       pts.push({ lat: z.lat + dLat, lng: z.lng }, { lat: z.lat - dLat, lng: z.lng });
     }
     if (pts.length === 0) return null;
-    const lat0 = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
-    const lng0 = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
+    const lat0 = (Math.min(...pts.map((p) => p.lat)) + Math.max(...pts.map((p) => p.lat))) / 2;
+    const lng0 = (Math.min(...pts.map((p) => p.lng)) + Math.max(...pts.map((p) => p.lng))) / 2;
     const k = Math.cos((lat0 * Math.PI) / 180);
     const spanM = Math.max(
       150,
-      ...pts.map((p) => Math.hypot((p.lat - lat0) * 111_320, (p.lng - lng0) * 111_320 * k) * 2.4),
+      ...pts.map((p) => Math.max(Math.abs(p.lat - lat0) * 111_320, Math.abs(p.lng - lng0) * 111_320 * k) * 2.3),
     );
     return { lat0, lng0, k, spanM };
-  }, [focus, placed, track, zones]);
+  }, [focus, placed, smooth, heat, zones, draftZone]);
 
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
   const scale = view && size.w ? Math.min(size.w, size.h) / view.spanM : 0; // px per metre
@@ -43,48 +62,71 @@ export function CatMap({ cats, focusId, track, trackColor, cursor, zones, onSele
     x: size.w / 2 + (lng - view!.lng0) * 111_320 * view!.k * scale,
     y: size.h / 2 - (lat - view!.lat0) * 111_320 * scale,
   });
+  const unproject = (x: number, y: number) => ({
+    lat: view!.lat0 + (size.h / 2 - y) / scale / 111_320,
+    lng: view!.lng0 + (x - size.w / 2) / scale / 111_320 / view!.k,
+  });
 
   const ringStepM = view ? niceStep(view.spanM / 4) : 100;
+  const routeColor = trackColor ?? focus?.color ?? t.accent;
+
+  const circle = (key: string, lat: number, lng: number, radiusM: number, extra: object) => {
+    const c = project(lat, lng);
+    const r = radiusM * scale;
+    return <View key={key} pointerEvents="none" style={[{ position: 'absolute', left: c.x - r, top: c.y - r, width: r * 2, height: r * 2, borderRadius: r }, extra]} />;
+  };
 
   return (
     <View style={[styles.wrap, { backgroundColor: t.surfaceAlt }, style]} onLayout={onLayout}>
       {view && scale > 0 && (
-        <>
-          {[1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.ring,
-                {
-                  borderColor: t.mapGrid,
-                  width: ringStepM * i * 2 * scale,
-                  height: ringStepM * i * 2 * scale,
-                  borderRadius: ringStepM * i * scale,
-                  left: size.w / 2 - ringStepM * i * scale,
-                  top: size.h / 2 - ringStepM * i * scale,
-                },
-              ]}
-            />
-          ))}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onLongPress={onLongPress ? (e) => {
+            const p = unproject(e.nativeEvent.locationX, e.nativeEvent.locationY);
+            onLongPress(p.lat, p.lng);
+          } : undefined}
+        >
+          {[1, 2, 3].map((i) =>
+            circle(`ring${i}`, view.lat0, view.lng0, ringStepM * i, { borderWidth: 1, borderStyle: 'dashed', borderColor: t.mapGrid }),
+          )}
           <Text style={[styles.scale, { color: t.textMuted }]}>rings every {formatDistance(ringStepM)}</Text>
 
-          {(zones ?? []).map((z) => {
-            const c = project(z.lat, z.lng);
-            const r = z.radiusM * scale;
-            return (
-              <View
-                key={z.id}
-                style={[styles.zone, { borderColor: t.live, left: c.x - r, top: c.y - r, width: r * 2, height: r * 2, borderRadius: r }]}
-              />
-            );
-          })}
+          {blobs.map((b) => circle(`h${b.key}`, b.lat, b.lng, b.radiusM, { backgroundColor: b.fill }))}
 
-          {(track ?? []).map((p, i) => {
-            const c = project(p.lat, p.lng);
+          {(zones ?? []).map((z) => (
+            <View key={z.id} pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {circle(`z${z.id}`, z.lat, z.lng, z.radiusM, {
+                borderWidth: 2, borderColor: t.live, borderStyle: z.allCats ? 'dashed' : 'solid', backgroundColor: 'rgba(21,128,61,0.08)',
+              })}
+              {(() => {
+                const c = project(z.lat + z.radiusM / 111_320, z.lng);
+                return (
+                  <Text style={[styles.zoneLabel, { left: c.x - 40, top: c.y - 9, color: t.live, backgroundColor: t.surface, borderColor: t.live }]}>
+                    {z.name}
+                  </Text>
+                );
+              })()}
+            </View>
+          ))}
+          {draftZone &&
+            circle('draft', draftZone.lat, draftZone.lng, draftZone.radiusM, {
+              borderWidth: 2, borderStyle: 'dashed', borderColor: t.accent, backgroundColor: 'rgba(217,119,6,0.12)',
+            })}
+
+          {smooth.slice(1).map((p, i) => {
+            const a = project(smooth[i]!.lat, smooth[i]!.lng);
+            const b = project(p.lat, p.lng);
+            const len = Math.hypot(b.x - a.x, b.y - a.y);
+            const angle = Math.atan2(b.y - a.y, b.x - a.x);
             return (
               <View
-                key={`${p.at}-${i}`}
-                style={[styles.trackDot, { left: c.x - 2.5, top: c.y - 2.5, backgroundColor: trackColor ?? focus?.color ?? t.accent }]}
+                key={`seg${i}`}
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: (a.x + b.x) / 2 - len / 2, top: (a.y + b.y) / 2 - 2,
+                  width: len + 1, height: 4, borderRadius: 2, backgroundColor: routeColor,
+                  transform: [{ rotate: `${angle}rad` }],
+                }}
               />
             );
           })}
@@ -94,43 +136,24 @@ export function CatMap({ cats, focusId, track, trackColor, cursor, zones, onSele
             const r = Math.max(0, (cat.lastAccuracyM ?? 0) * scale);
             return (
               <View key={cat.id} style={StyleSheet.absoluteFill} pointerEvents="box-none">
-                {r > 6 && (
-                  <View
-                    style={[styles.halo, { backgroundColor: `${cat.color}26`, left: c.x - r, top: c.y - r, width: r * 2, height: r * 2, borderRadius: r }]}
-                  />
-                )}
-                <Pressable
-                  accessibilityLabel={cat.name}
-                  onPress={() => onSelectCat?.(cat.id)}
-                  style={{ position: 'absolute', left: c.x - 17, top: c.y - 26 }}
-                >
-                  <CatAvatar name={cat.name} color={cat.color} size={34} ring="#fff" />
-                </Pressable>
+                {r > 6 && circle(`acc${cat.id}`, cat.lastLat!, cat.lastLng!, cat.lastAccuracyM!, { backgroundColor: `${cat.color}26` })}
+                <RadarCat cat={cat} x={c.x} y={c.y} onPress={onSelectCat ? () => onSelectCat(cat.id) : undefined} />
               </View>
             );
           })}
 
           {cursor && (() => {
             const c = project(cursor.lat, cursor.lng);
-            return <View style={[styles.cursor, { left: c.x - 9, top: c.y - 9, borderColor: trackColor ?? focus?.color ?? t.accent }]} />;
+            return <View pointerEvents="none" style={[styles.cursor, { left: c.x - 10, top: c.y - 10, borderColor: routeColor }]} />;
           })()}
-
-          {focus && placed.length > 1 && !track?.length && (
-            <Text style={[styles.scale, { top: 12, color: t.textMuted }]}>
-              {placed
-                .filter((c) => c.id !== focus.id)
-                .map((c) => `${c.name} ${formatDistance(distanceM(focus.lastLat!, focus.lastLng!, c.lastLat!, c.lastLng!))}`)
-                .join(' · ')}
-            </Text>
-          )}
-        </>
+        </Pressable>
       )}
       {!view && (
         <View style={styles.empty}>
           <Text style={{ color: t.textMuted }}>No positions yet</Text>
         </View>
       )}
-      <Text style={[styles.badge, { color: t.textMuted, backgroundColor: t.surface }]}>Web preview · real map in Expo Go</Text>
+      <Text style={[styles.badge, { color: t.textMuted, backgroundColor: t.surface }]}>Web preview · real map on the phone</Text>
     </View>
   );
 }
@@ -142,12 +165,12 @@ function niceStep(m: number): number {
 
 const styles = StyleSheet.create({
   wrap: { overflow: 'hidden' },
-  ring: { position: 'absolute', borderWidth: 1, borderStyle: 'dashed' },
-  zone: { position: 'absolute', borderWidth: 2, backgroundColor: 'rgba(21,128,61,0.10)' },
-  halo: { position: 'absolute' },
-  trackDot: { position: 'absolute', width: 5, height: 5, borderRadius: 3, opacity: 0.8 },
-  cursor: { position: 'absolute', width: 18, height: 18, borderRadius: 9, borderWidth: 4, backgroundColor: '#fff' },
+  cursor: { position: 'absolute', width: 20, height: 20, borderRadius: 10, borderWidth: 5, backgroundColor: '#fff' },
   scale: { position: 'absolute', bottom: 10, left: 12, fontSize: 11 },
+  zoneLabel: {
+    position: 'absolute', width: 80, textAlign: 'center', fontSize: 11, fontWeight: '700',
+    borderWidth: 1, borderRadius: 8, overflow: 'hidden', paddingVertical: 1,
+  },
   badge: { position: 'absolute', top: 10, right: 10, fontSize: 11, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, overflow: 'hidden' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

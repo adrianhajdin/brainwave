@@ -37,7 +37,7 @@ export default function AddCat() {
         if (trackNow) setTrackedCatId(id);
       } else {
         id = await backend.claimCollar(deviceUid, claimCode);
-        if (name.trim()) await backend.renameCat(id, name, color);
+        if (name.trim()) await backend.updateCat(id, { name, color });
       }
       await refresh();
       router.replace({ pathname: '/cat/[id]', params: { id } });

@@ -2,9 +2,9 @@
  * "This phone is <cat>'s tracker" - the mobile equivalent of Traccar's
  * emulator page: the phone reports its own GPS as if it were the collar.
  *
- * Foreground only: Expo Go cannot run background location tasks, so keep the
- * app open (the screen is kept awake while tracking). A development build
- * with expo-task-manager can add background tracking later.
+ * - Development/store build + "Allow all the time": background task
+ *   (keeps working with the screen off, Android shows a notification).
+ * - Expo Go or "While using the app": foreground watch, screen kept awake.
  */
 import * as Battery from 'expo-battery';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -12,12 +12,16 @@ import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 
 import type { Backend, ReportResult } from '../backend/types';
+import { onBackgroundReport, startBackgroundTracking, stopBackgroundTracking } from './background';
 
 export type TrackerState = 'off' | 'starting' | 'tracking' | 'denied' | 'error';
 
 export interface TrackerStatus {
   catId: string | null;
   state: TrackerState;
+  /** 'background' keeps running with the screen off. */
+  mode: 'background' | 'foreground' | null;
+  intervalS: number | null;
   sent: number;
   lastResult: ReportResult | null;
   lastSentAt: string | null;
@@ -26,28 +30,37 @@ export interface TrackerStatus {
 }
 
 const OFF: TrackerStatus = {
-  catId: null, state: 'off', sent: 0, lastResult: null, lastSentAt: null, lastAccuracyM: null, error: null,
+  catId: null, state: 'off', mode: null, intervalS: null, sent: 0,
+  lastResult: null, lastSentAt: null, lastAccuracyM: null, error: null,
 };
 
 const KEEP_AWAKE_TAG = 'cat-tracker';
 
-export function usePhoneTracker(backend: Backend | null, catId: string | null, intervalS: number): TrackerStatus {
+export function usePhoneTracker(
+  backend: Backend | null,
+  cat: { id: string; name: string } | null,
+  intervalS: number,
+): TrackerStatus {
   const [status, setStatus] = useState<TrackerStatus>(OFF);
+  const catId = cat?.id ?? null;
+  const catName = cat?.name ?? 'your cat';
 
   useEffect(() => {
     if (!backend || !catId) {
       setStatus(OFF);
+      void stopBackgroundTracking();
       return;
     }
 
     let cancelled = false;
     let subscription: Location.LocationSubscription | null = null;
+    let unlistenBg: (() => void) | null = null;
     let lastSentMs = 0;
     let inFlight = false;
 
-    setStatus({ ...OFF, catId, state: 'starting' });
+    setStatus({ ...OFF, catId, state: 'starting', intervalS });
 
-    const report = async (loc: Location.LocationObject) => {
+    const reportForeground = async (loc: Location.LocationObject) => {
       // iOS ignores timeInterval, so throttle here as well.
       if (inFlight || Date.now() - lastSentMs < intervalS * 1000 - 500) return;
       inFlight = true;
@@ -80,6 +93,31 @@ export function usePhoneTracker(backend: Backend | null, catId: string | null, i
 
     (async () => {
       try {
+        // Background only makes sense against the real backend.
+        if (backend.mode === 'supabase') {
+          const bg = await startBackgroundTracking(catId, catName, intervalS);
+          if (cancelled) return;
+          if (bg === 'denied') {
+            setStatus({ ...OFF, catId, state: 'denied', error: 'Location permission was not granted.' });
+            return;
+          }
+          if (bg === 'started') {
+            unlistenBg = onBackgroundReport((r) =>
+              setStatus((s) => ({
+                ...s,
+                state: r.error ? 'error' : 'tracking',
+                sent: r.ok ? s.sent + 1 : s.sent,
+                lastResult: r.ok ? 'ok' : s.lastResult,
+                lastSentAt: r.at,
+                lastAccuracyM: r.accuracyM,
+                error: r.error ?? null,
+              })),
+            );
+            setStatus((s) => ({ ...s, state: 'tracking', mode: 'background' }));
+            return;
+          }
+        }
+
         const perm = await Location.requestForegroundPermissionsAsync();
         if (cancelled) return;
         if (perm.status !== 'granted') {
@@ -89,10 +127,10 @@ export function usePhoneTracker(backend: Backend | null, catId: string | null, i
         await activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
         subscription = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: intervalS * 1000, distanceInterval: 0 },
-          (loc) => void report(loc),
+          (loc) => void reportForeground(loc),
         );
         if (cancelled) subscription.remove();
-        else setStatus((s) => ({ ...s, state: s.state === 'starting' ? 'tracking' : s.state }));
+        else setStatus((s) => ({ ...s, mode: 'foreground', state: s.state === 'starting' ? 'tracking' : s.state }));
       } catch (e) {
         if (!cancelled) setStatus({ ...OFF, catId, state: 'error', error: e instanceof Error ? e.message : String(e) });
       }
@@ -101,9 +139,10 @@ export function usePhoneTracker(backend: Backend | null, catId: string | null, i
     return () => {
       cancelled = true;
       subscription?.remove();
+      unlistenBg?.();
       deactivateKeepAwake(KEEP_AWAKE_TAG);
     };
-  }, [backend, catId, intervalS]);
+  }, [backend, catId, catName, intervalS]);
 
   return status;
 }

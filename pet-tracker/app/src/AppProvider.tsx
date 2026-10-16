@@ -1,7 +1,7 @@
 /**
  * App-wide state: which backend (demo / Supabase), the live cat list, the
- * latest geofence alert, and the phone-tracker session (which survives
- * navigation because it lives here, not in a screen).
+ * latest geofence alert, push registration and the phone-tracker session
+ * (which survives navigation because it lives here, not in a screen).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -10,6 +10,8 @@ import { DemoBackend } from './backend/demoBackend';
 import { SupabaseBackend } from './backend/supabaseBackend';
 import { supabase } from './backend/supabaseClient';
 import type { Backend, Cat, CatEvent } from './backend/types';
+import { inNightWindow } from './geo';
+import { onNotificationOpened, registerForPush, type PushStatus } from './notifications/push';
 import { usePhoneTracker, type TrackerStatus } from './tracking/usePhoneTracker';
 
 export const REPORT_INTERVALS = [
@@ -17,6 +19,8 @@ export const REPORT_INTERVALS = [
   { seconds: 60, label: '1 min', hint: 'walk test' },
   { seconds: 900, label: '15 min', hint: 'like the collar' },
 ] as const;
+
+export const LOST_MODE_INTERVAL_S = 15;
 
 interface AppState {
   ready: boolean;
@@ -35,12 +39,20 @@ interface AppState {
   setTrackedCatId: (id: string | null) => void;
   intervalS: number;
   setIntervalS: (s: number) => void;
+  /** Interval actually used now (lost mode / night watch can shorten it). */
+  effectiveIntervalS: number;
+  push: { status: PushStatus | 'pending'; error?: string };
+  /** Cat to open after tapping a notification (consumed by the home screen). */
+  openCatRequest: string | null;
+  clearOpenCatRequest: () => void;
 }
 
 const Ctx = createContext<AppState | null>(null);
 
 const TRACKED_KEY = 'tracker.catId';
 const INTERVAL_KEY = 'tracker.intervalS';
+
+const minuteOfDay = (d = new Date()) => d.getHours() * 60 + d.getMinutes();
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -49,6 +61,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [alert, setAlert] = useState<CatEvent | null>(null);
   const [trackedCatId, setTrackedCatIdState] = useState<string | null>(null);
   const [intervalS, setIntervalSState] = useState<number>(15);
+  const [push, setPush] = useState<AppState['push']>({ status: 'pending' });
+  const [openCatRequest, setOpenCatRequest] = useState<string | null>(null);
+  const [clock, setClock] = useState(minuteOfDay());
+
+  // Re-evaluate the night window every minute.
+  useEffect(() => {
+    const t = setInterval(() => setClock(minuteOfDay()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // Restore an existing Supabase session and follow auth changes.
   useEffect(() => {
@@ -59,28 +80,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     const client = supabase;
     void client.auth.getSession().then(({ data }) => {
-      if (data.session) setBackend(new SupabaseBackend(client, data.session.user.email));
+      if (data.session) setBackend(new SupabaseBackend(client, data.session.user.id, data.session.user.email));
       setReady(true);
     });
     const { data } = client.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setBackend((b) => (b?.mode === 'supabase' ? b : new SupabaseBackend(client, session.user.email)));
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        setBackend((b) =>
+          b?.mode === 'supabase' && b.userId === session.user.id ? b : new SupabaseBackend(client, session.user.id, session.user.email),
+        );
       }
       if (event === 'SIGNED_OUT') setBackend((b) => (b?.mode === 'supabase' ? null : b));
     });
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Restore which cat this phone was tracking (per backend mode).
+  // Restore which cat this phone was tracking (real backend only: demo cats
+  // are re-created on every launch).
   useEffect(() => {
     if (!backend) {
       setTrackedCatIdState(null);
       return;
     }
     void AsyncStorage.getItem(`${TRACKED_KEY}.${backend.mode}`).then((id) => {
-      // Demo cats are re-created on every launch, so only restore real ones.
       if (backend.mode === 'supabase') setTrackedCatIdState(id);
     });
+  }, [backend]);
+
+  // Push notifications: register this device and route taps to the cat.
+  useEffect(() => {
+    if (!backend) return;
+    let active = true;
+    void registerForPush(backend).then((r) => active && setPush({ status: r.status, error: r.error }));
+    const unsubscribe = onNotificationOpened((catId) => setOpenCatRequest(catId));
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [backend]);
 
   const upsertCat = useCallback((cat: Cat) => {
@@ -122,7 +157,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [backend, upsertCat, removeCatLocal]);
 
-  const tracker = usePhoneTracker(backend, trackedCatId, intervalS);
+  const trackedCat = cats.find((c) => c.id === trackedCatId) ?? null;
+  const effectiveIntervalS = trackedCat?.lostMode
+    ? LOST_MODE_INTERVAL_S
+    : trackedCat?.night.enabled && inNightWindow(clock, trackedCat.night.startMin, trackedCat.night.endMin)
+      ? Math.min(intervalS, trackedCat.night.intervalS)
+      : intervalS;
+
+  const tracker = usePhoneTracker(
+    backend,
+    trackedCatId ? { id: trackedCatId, name: trackedCat?.name ?? 'your cat' } : null,
+    effectiveIntervalS,
+  );
 
   const setTrackedCatId = useCallback(
     (id: string | null) => {
@@ -162,8 +208,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTrackedCatId,
       intervalS,
       setIntervalS,
+      effectiveIntervalS,
+      push,
+      openCatRequest,
+      clearOpenCatRequest: () => setOpenCatRequest(null),
     }),
-    [ready, backend, cats, alert, refresh, upsertCat, removeCatLocal, tracker, trackedCatId, setTrackedCatId, intervalS, setIntervalS],
+    [ready, backend, cats, alert, refresh, upsertCat, removeCatLocal, tracker, trackedCatId, setTrackedCatId, intervalS, setIntervalS, effectiveIntervalS, push, openCatRequest],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
