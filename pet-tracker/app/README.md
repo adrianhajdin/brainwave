@@ -2,7 +2,7 @@
 
 Track several cats on one map, with live positions, route replay and home-zone alerts. Until the collars exist, **a phone can stand in as a cat's tracker**: it sends its own GPS as that cat, over the phone's internet connection.
 
-Runs in **Expo Go (SDK 58)** on iOS and Android, so there's nothing to compile.
+Runs in **Expo Go (SDK 57)** on iOS and Android, so there's nothing to compile.
 
 ## 1. Quickest test: demo mode (2 minutes, no account)
 

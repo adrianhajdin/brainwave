@@ -25,7 +25,7 @@ firmware/                      Zephyr application (nRF Connect SDK v3.4.1)
   prj.conf                     production config (PSM 12 h / 6 s, RAI, 1NCE APN, no UART)
   overlay-debug.conf           logs + short intervals for the bench
   sysbuild.conf                MCUboot: ECDSA-P256, encrypted images, HW anti-rollback
-app/                           Expo (SDK 58) React Native app: multi-cat map, phone-as-tracker,
+app/                           Expo (SDK 57) React Native app: multi-cat map, phone-as-tracker,
                                route replay, home zones; demo mode or Supabase
 cloud/
   supabase/migrations/         schema, RLS, ingest/claim functions, retention job, cats + phone trackers
