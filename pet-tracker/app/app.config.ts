@@ -81,6 +81,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ? ([['@react-native-google-signin/google-signin', { iosUrlScheme: googleIosUrlScheme }]] as ExpoConfig['plugins'] & object)
       : []),
   ],
+  // Over-the-air updates: `eas update` publishes the JS bundle to this URL,
+  // and Expo Go (or a dev build) opens it from a link or QR code.
+  ...(process.env.EAS_PROJECT_ID
+    ? {
+        updates: { url: `https://u.expo.dev/${process.env.EAS_PROJECT_ID}` },
+        runtimeVersion: { policy: 'appVersion' } as const,
+      }
+    : {}),
   extra: {
     eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
   },
