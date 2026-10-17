@@ -4,16 +4,30 @@
  * (FCM on Android, APNs on iOS). Needs a development or store build.
  */
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import type { Backend } from '../backend/types';
-import { capabilities, easProjectId } from '../runtime';
+import { capabilities, easProjectId, isExpoGo } from '../runtime';
+
+type NotificationsModule = typeof import('expo-notifications');
+let notificationsModule: NotificationsModule | null | undefined;
+
+/**
+ * expo-notifications, loaded on first use. Expo Go on Android no longer ships
+ * its native module, so importing it there crashes the app at start-up.
+ */
+function notifications(): NotificationsModule | null {
+  if (notificationsModule === undefined) {
+    notificationsModule = Platform.OS === 'web' || isExpoGo ? null : (require('expo-notifications') as NotificationsModule);
+  }
+  return notificationsModule;
+}
 
 let configured = false;
 
 export function configureNotifications(): void {
-  if (configured || Platform.OS === 'web') return;
+  const Notifications = notifications();
+  if (configured || !Notifications) return;
   configured = true;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -46,7 +60,8 @@ export type PushStatus = 'idle' | 'unsupported' | 'denied' | 'registered' | 'err
  * alerts on (see the explanation in Settings).
  */
 export async function registerForPush(backend: Backend, { ask }: { ask: boolean }): Promise<{ status: PushStatus; token?: string; error?: string }> {
-  if (!capabilities.push || backend.mode !== 'supabase' || !Device.isDevice) return { status: 'unsupported' };
+  const Notifications = notifications();
+  if (!Notifications || !capabilities.push || backend.mode !== 'supabase' || !Device.isDevice) return { status: 'unsupported' };
   try {
     configureNotifications();
     let perm = await Notifications.getPermissionsAsync();
@@ -63,7 +78,8 @@ export async function registerForPush(backend: Backend, { ask }: { ask: boolean 
 
 /** Calls onOpen(catId) when the user taps an alert. Returns unsubscribe. */
 export function onNotificationOpened(onOpen: (catId: string) => void): () => void {
-  if (Platform.OS === 'web') return () => undefined;
+  const Notifications = notifications();
+  if (!Notifications) return () => undefined;
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
     const catId = (response.notification.request.content.data as { catId?: string } | undefined)?.catId;
     if (catId) onOpen(catId);
