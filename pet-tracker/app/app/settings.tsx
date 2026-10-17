@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useApp } from '../src/AppProvider';
 import { supabase } from '../src/backend/supabaseClient';
@@ -14,7 +14,7 @@ import type { HouseholdPerson } from '../src/backend/types';
 import { Button, Card, ErrorText, SectionTitle, Segmented } from '../src/components/ui';
 import { ask, messageOf } from '../src/dialogs';
 import { capabilities, isExpoGo } from '../src/runtime';
-import { radius, space, useTheme, useThemePref, type ThemePref } from '../src/theme';
+import { fonts, radius, space, useTheme, useThemePref, type ThemePref } from '../src/theme';
 
 export default function Settings() {
   const t = useTheme();
@@ -184,19 +184,40 @@ export default function Settings() {
 
       <Card style={{ gap: space.md }}>
         <SectionTitle>Appearance</SectionTitle>
-        <Segmented<ThemePref>
-          options={[
-            { value: 'system', label: 'System' },
-            { value: 'light', label: 'Light' },
-            { value: 'dark', label: 'Dark' },
-          ]}
-          value={pref}
-          onChange={setPref}
-        />
+        <View style={styles.tiles}>
+          {(
+            [
+              { value: 'system', label: 'System', icon: 'phone-portrait-outline' },
+              { value: 'light', label: 'Light', icon: 'sunny-outline' },
+              { value: 'dark', label: 'Dark', icon: 'moon-outline' },
+            ] as const
+          ).map((o) => {
+            const selected = pref === o.value;
+            return (
+              <Pressable
+                key={o.value}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                onPress={() => setPref(o.value as ThemePref)}
+                style={[styles.tile, { backgroundColor: t.surfaceAlt, borderColor: selected ? t.primary : 'transparent' }]}
+              >
+                <Ionicons name={o.icon} size={22} color={t.text} />
+                <Text style={{ color: t.text, fontFamily: selected ? fonts.bodySemibold : fonts.bodyMedium }}>{o.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </Card>
 
       <Card style={{ gap: space.md }}>
-        <SectionTitle>Alerts</SectionTitle>
+        <View style={styles.rowBetween}>
+          <Text style={{ color: t.text, fontFamily: fonts.display, fontSize: 18 }}>Push alerts</Text>
+          <View style={[styles.onPill, { backgroundColor: push.status === 'registered' ? t.liveSoft : t.surfaceAlt }]}>
+            <Text style={{ color: push.status === 'registered' ? t.live : t.textMuted, fontFamily: fonts.bodySemibold, fontSize: 12 }}>
+              {push.status === 'registered' ? 'On' : 'Off'}
+            </Text>
+          </View>
+        </View>
         <Text style={{ color: t.textMuted, lineHeight: 20 }}>{pushText}</Text>
         {!demo && push.status === 'idle' && (
           <Button title="Turn on alerts" icon="notifications-outline" busy={busy === 'push'} onPress={() => void turnOnAlerts()} />
@@ -208,7 +229,16 @@ export default function Settings() {
 
       <Card style={{ gap: space.md }}>
         <SectionTitle>Account</SectionTitle>
-        <Text style={{ color: t.text }}>{demo ? 'Demo mode · nothing is stored' : `Signed in as ${backend.userLabel}`}</Text>
+        <View style={styles.account}>
+          <View style={[styles.accountAvatar, { backgroundColor: t.primary }]}>
+            <Text style={{ color: t.primaryText, fontFamily: fonts.display, fontSize: 18 }}>
+              {(backend.userLabel ?? 'D').slice(0, 1).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={{ color: t.text, flex: 1 }} numberOfLines={1}>
+            {demo ? 'Demo mode · nothing is stored' : `Signed in as ${backend.userLabel}`}
+          </Text>
+        </View>
         {!demo && supabase && (
           <View style={styles.row}>
             <TextInput
@@ -282,6 +312,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   personText: { flex: 1, fontSize: 15 },
-  codeBox: { borderRadius: radius.md, padding: space.md, gap: space.sm, alignItems: 'center' },
+  codeBox: { borderRadius: radius.lg, padding: space.md, gap: space.sm, alignItems: 'center' },
+  tiles: { flexDirection: 'row', gap: space.sm },
+  tile: { flex: 1, alignItems: 'center', gap: space.xs, paddingVertical: space.md, borderRadius: radius.lg, borderWidth: 1.5 },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  onPill: { paddingHorizontal: space.md, paddingVertical: 4, borderRadius: radius.pill },
+  account: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  accountAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   code: { fontSize: 30, fontWeight: '900', letterSpacing: 4 },
 });

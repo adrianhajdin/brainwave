@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { radius, space, useTheme } from '../theme';
+import { fonts, radius, space, useTheme } from '../theme';
 
 /** Icon names from the Ionicons set; the app uses icons instead of emoji. */
 export type IconName = keyof typeof Ionicons.glyphMap;
@@ -68,8 +68,9 @@ export function Button({
   accessibilityLabel?: string;
 }) {
   const t = useTheme();
-  const bg = { primary: t.accent, secondary: t.surfaceAlt, ghost: 'transparent', danger: 'transparent' }[variant];
-  const fg = textColor ?? { primary: t.accentText, secondary: t.text, ghost: t.accent, danger: t.danger }[variant];
+  // Ink buttons are the primary action; the blue accent is reserved for links and selection.
+  const bg = { primary: t.primary, secondary: t.surfaceAlt, ghost: 'transparent', danger: 'transparent' }[variant];
+  const fg = textColor ?? { primary: t.primaryText, secondary: t.text, ghost: t.accent, danger: t.danger }[variant];
   return (
     <Pressable
       accessibilityRole="button"
@@ -80,6 +81,7 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: bg, opacity: disabled ? 0.45 : pressed ? 0.8 : 1 },
+        variant === 'primary' && { borderRadius: radius.pill },
         variant === 'danger' && { borderWidth: 1, borderColor: t.danger },
         style,
       ]}
@@ -174,7 +176,7 @@ export function Segmented<T extends string | number>({
             onPress={() => onChange(o.value)}
             style={[styles.segment, selected && { backgroundColor: t.surface, shadowColor: t.shadow, shadowOpacity: 1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 }]}
           >
-            <Text style={{ color: selected ? t.text : t.textMuted, fontWeight: selected ? '700' : '500', textAlign: 'center' }}>{o.label}</Text>
+            <Text style={{ color: selected ? t.text : t.textMuted, fontFamily: selected ? fonts.bodySemibold : fonts.bodyMedium, textAlign: 'center' }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -196,16 +198,16 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   buttonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
-  buttonText: { fontSize: 16, fontWeight: '700' },
+  buttonText: { fontSize: 16, fontFamily: fonts.bodySemibold },
   iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   card: {
-    borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: space.lg,
-    shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2,
+    borderRadius: radius.lg, padding: space.lg,
+    shadowOpacity: 1, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 1,
   },
   pill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
   pillInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  pillText: { fontSize: 12, fontWeight: '700' },
-  section: { fontSize: 13, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: space.sm },
+  pillText: { fontSize: 12, fontFamily: fonts.bodySemibold },
+  section: { fontSize: 13, fontFamily: fonts.bodySemibold, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: space.sm },
   segmented: { flexDirection: 'row', borderRadius: radius.md, padding: 3 },
-  segment: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 4, borderRadius: radius.md - 3 },
+  segment: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 4, borderRadius: radius.md - 2 },
 });

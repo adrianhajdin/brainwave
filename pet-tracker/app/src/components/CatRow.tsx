@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Cat } from '../backend/types';
 import { isLive, relativeTime } from '../geo';
-import { space, useTheme } from '../theme';
+import { fonts, space, useTheme } from '../theme';
 import { CatAvatar, Pill } from './ui';
 import { catBadge, usePhotoUrl } from './usePhotoUrl';
 
@@ -35,13 +36,13 @@ export function CatRow({ cat, trackedByPhone, shared, onPress }: { cat: Cat; tra
         <Text style={{ color: t.textMuted, marginTop: 2 }}>
           {status}
           {hasBattery && (
-            <Text style={{ color: lowBattery ? t.danger : t.textMuted, fontWeight: lowBattery ? '700' : '400' }}>
+            <Text style={{ color: lowBattery ? t.warn : t.textMuted, fontFamily: lowBattery ? fonts.bodySemibold : fonts.body }}>
               {`  ·  ${lowBattery ? 'Battery low' : 'Battery'} ${cat.lastBatteryPct}%`}
             </Text>
           )}
         </Text>
       </View>
-      <View style={[styles.dot, { backgroundColor: live ? t.live : t.border }]} />
+      <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
     </Pressable>
   );
 }
@@ -50,6 +51,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, paddingHorizontal: space.lg },
   body: { flex: 1 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexWrap: 'wrap' },
-  name: { fontSize: 17, fontWeight: '800', flexShrink: 1, marginRight: space.xs },
-  dot: { width: 10, height: 10, borderRadius: 5 },
+  name: { fontSize: 17, fontFamily: fonts.bodySemibold, flexShrink: 1, marginRight: space.xs },
 });

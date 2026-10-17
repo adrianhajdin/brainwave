@@ -9,7 +9,7 @@ import { appleSignInAvailable, isCancellation, signInWithApple, signInWithGoogle
 import { supabase } from '../src/backend/supabaseClient';
 import { Button, Card, CatAvatar } from '../src/components/ui';
 import { capabilities } from '../src/runtime';
-import { radius, space, useTheme } from '../src/theme';
+import { fonts, radius, space, useTheme } from '../src/theme';
 
 type Busy = 'in' | 'up' | 'apple' | 'google' | 'resend' | null;
 
@@ -116,16 +116,17 @@ export default function Login() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.hero}>
-            <View style={styles.avatars}>
-              <CatAvatar name="M" color="#F59E0B" size={44} />
-              <CatAvatar name="T" color="#6366F1" size={56} />
-              <CatAvatar name="P" color="#EC4899" size={44} />
-            </View>
-            <Text style={[styles.title, { color: t.text }]}>Cat Tracker</Text>
-            <Text style={[styles.subtitle, { color: t.textMuted }]}>
+          <View style={[styles.hero, { backgroundColor: t.primary }]}>
+            <Text style={[styles.eyebrow, { color: t.primaryText }]}>CAT TRACKER</Text>
+            <Text style={[styles.heroTitle, { color: t.primaryText }]}>Know where your cats roam.</Text>
+            <Text style={[styles.heroSub, { color: t.primaryText }]}>
               Live location, route history and home-zone alerts for every cat in the house.
             </Text>
+            <View style={styles.avatars}>
+              <CatAvatar name="M" color="#F59E0B" size={40} />
+              <CatAvatar name="T" color="#2449E8" size={52} />
+              <CatAvatar name="P" color="#EC4899" size={40} />
+            </View>
           </View>
 
           {supabaseConfigured ? (
@@ -221,14 +222,16 @@ export default function Login() {
             </Card>
           )}
 
-          <Card style={{ gap: space.md, marginTop: space.lg }}>
-            <Text style={[styles.cardTitle, { color: t.text }]}>Just looking?</Text>
-            <Text style={{ color: t.textMuted, lineHeight: 20 }}>
-              Demo mode runs on this phone only: two simulated cats wander nearby, and you can add a cat that follows this
-              phone's real GPS.
-            </Text>
-            <Button title="Start demo" icon="paw-outline" variant="secondary" onPress={startDemo} />
-          </Card>
+          <Pressable accessibilityRole="button" onPress={startDemo} style={[styles.demo, { backgroundColor: t.surface }]}>
+              <View style={[styles.demoIcon, { backgroundColor: t.surfaceAlt }]}>
+                <Ionicons name="paw-outline" size={20} color={t.text} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>Just looking? Try the demo</Text>
+                <Text style={{ color: t.textMuted, fontSize: 13 }}>Two simulated cats. Nothing is stored.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
+            </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -237,12 +240,15 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   scroll: { padding: space.xl, paddingTop: space.xl * 2, maxWidth: 520, width: '100%', alignSelf: 'center' },
-  hero: { alignItems: 'center', marginBottom: space.xl },
-  avatars: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginBottom: space.lg },
-  title: { fontSize: 34, fontWeight: '900', letterSpacing: -0.5 },
-  subtitle: { fontSize: 16, textAlign: 'center', marginTop: space.sm, lineHeight: 22 },
-  cardTitle: { fontSize: 18, fontWeight: '800' },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16 },
+  hero: { borderRadius: radius.lg, padding: space.xl, gap: space.sm, marginBottom: space.lg, overflow: 'hidden' },
+  eyebrow: { fontFamily: fonts.bodySemibold, fontSize: 12, letterSpacing: 1.2, opacity: 0.7 },
+  heroTitle: { fontFamily: fonts.display, fontSize: 32, letterSpacing: -0.8, lineHeight: 36 },
+  heroSub: { fontSize: 15, lineHeight: 22, opacity: 0.8 },
+  avatars: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.md },
+  cardTitle: { fontSize: 18, fontFamily: fonts.bodySemibold },
+  demo: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.lg, marginTop: space.lg },
+  demoIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, fontFamily: fonts.body },
   passwordRow: { flexDirection: 'row', alignItems: 'center' },
   passwordInput: { flex: 1, paddingRight: 48 },
   eye: { position: 'absolute', right: space.md, top: 0, bottom: 0, justifyContent: 'center' },

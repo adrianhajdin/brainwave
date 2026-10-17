@@ -7,7 +7,7 @@ import { useApp } from '../src/AppProvider';
 import { CAT_COLORS } from '../src/backend/types';
 import { Button, CatAvatar, ErrorText, SectionTitle, Segmented } from '../src/components/ui';
 import { messageOf } from '../src/dialogs';
-import { radius, space, useTheme } from '../src/theme';
+import { fonts, radius, space, useTheme } from '../src/theme';
 
 type Source = 'phone' | 'collar';
 
@@ -86,15 +86,33 @@ export default function AddCat() {
         ))}
       </View>
 
-      <SectionTitle>Tracker</SectionTitle>
-      <Segmented<Source>
-        options={[
-          { value: 'phone', label: 'This phone' },
-          { value: 'collar', label: 'GPS collar' },
-        ]}
-        value={source}
-        onChange={setSource}
-      />
+      <SectionTitle>How will you track {name.trim() || 'your cat'}?</SectionTitle>
+      <View style={styles.modes}>
+        {(
+          [
+            { value: 'phone', icon: 'phone-portrait-outline', title: 'This phone', body: 'Test without a collar. Uses this phone\'s GPS.' },
+            { value: 'collar', icon: 'radio-outline', title: 'GPS collar', body: 'Pair it with the code on its label.' },
+          ] as const
+        ).map((m) => {
+          const selected = source === m.value;
+          return (
+            <Pressable
+              key={m.value}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              onPress={() => setSource(m.value)}
+              style={[styles.mode, { backgroundColor: t.surface, borderColor: selected ? t.primary : t.border }]}
+            >
+              <View style={styles.modeTop}>
+                <Ionicons name={m.icon} size={22} color={t.text} />
+                {selected && <Ionicons name="checkmark-circle" size={20} color={t.primary} />}
+              </View>
+              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, marginTop: space.sm }}>{m.title}</Text>
+              <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18, marginTop: 2 }}>{m.body}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       {source === 'phone' ? (
         <View style={[styles.box, { backgroundColor: t.surface, borderColor: t.border }]}>
@@ -170,7 +188,10 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, marginBottom: space.md },
   swatches: { flexDirection: 'row', gap: space.md, marginBottom: space.lg, flexWrap: 'wrap' },
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 3 },
-  box: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, padding: space.md, marginTop: space.md, gap: space.md },
+  box: { borderRadius: radius.lg, padding: space.md, marginTop: space.md, gap: space.md },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
   switchRow: { flexDirection: 'row', alignItems: 'center' },
+  modes: { flexDirection: 'row', gap: space.sm },
+  mode: { flex: 1, borderWidth: 1.5, borderRadius: radius.lg, padding: space.md },
+  modeTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

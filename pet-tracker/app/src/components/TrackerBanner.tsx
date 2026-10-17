@@ -2,7 +2,7 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../AppProvider';
 import { relativeTime } from '../geo';
-import { radius, space, useTheme } from '../theme';
+import { fonts, radius, space, useTheme } from '../theme';
 
 /** Shows that this phone is acting as a cat's collar, from any screen. Stop and Settings act from here. */
 export function TrackerBanner({ onPress }: { onPress?: () => void }) {
@@ -23,15 +23,16 @@ export function TrackerBanner({ onPress }: { onPress?: () => void }) {
   }[tracker.state];
   const problem = tracker.state === 'denied' || tracker.state === 'error';
   const tone = problem ? t.danger : t.live;
+  const bg = problem ? t.dangerSoft : t.liveSoft;
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${text}. Open ${name}`}
-      style={[styles.banner, { backgroundColor: t.surface, borderColor: tone }]}
+      style={[styles.banner, { backgroundColor: bg }]}
     >
-      <View style={[styles.pulse, { backgroundColor: tone }]} />
+      <View style={[styles.pulse, { backgroundColor: problem ? t.danger : t.liveDot }]} />
       <Text style={[styles.text, { color: t.text }]} numberOfLines={3}>
         {text}
       </Text>
@@ -51,9 +52,9 @@ export function TrackerBanner({ onPress }: { onPress?: () => void }) {
 const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row', alignItems: 'center', gap: space.sm,
-    borderRadius: radius.md, borderWidth: 1.5, paddingVertical: space.sm, paddingHorizontal: space.md,
+    borderRadius: radius.md, paddingVertical: space.sm, paddingHorizontal: space.md,
   },
   pulse: { width: 10, height: 10, borderRadius: 5 },
-  text: { flex: 1, fontWeight: '600' },
-  action: { fontWeight: '700', paddingLeft: space.sm },
+  text: { flex: 1, fontFamily: fonts.bodyMedium },
+  action: { fontFamily: fonts.bodySemibold, paddingLeft: space.sm },
 });

@@ -2,43 +2,55 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, createElement, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
+// "Clean Signal" redesign. Same keys as before, new values; three keys are new:
+// primary / primaryText (ink buttons) and warn / warnSoft (low battery).
 const light = {
-  bg: '#FBF7F2',
+  bg: '#F3F5F8',
   surface: '#FFFFFF',
-  surfaceAlt: '#F3ECE3',
-  text: '#1F1A17',
-  textMuted: '#6F655C',
-  border: '#E7DED3',
-  accent: '#D97706',
+  surfaceAlt: '#EEF1F5',
+  text: '#0C1220',
+  textMuted: '#5B6577',
+  border: '#E1E6EC',
+  primary: '#0C1220',
+  primaryText: '#FFFFFF',
+  accent: '#2449E8',
   accentText: '#FFFFFF',
-  accentSoft: '#FDEFD9',
-  danger: '#C8323A',
-  dangerSoft: '#FBE4E5',
-  live: '#15803D',
-  liveSoft: '#DCF5E3',
-  night: '#4F46E5',
-  nightSoft: '#E6E4FB',
-  mapGrid: '#E9E1D6',
-  shadow: 'rgba(60, 40, 20, 0.12)',
+  accentSoft: '#E7EDFF',
+  danger: '#C21F2B',
+  dangerSoft: '#FDE8EA',
+  live: '#067448',
+  liveSoft: '#DBF4EA',
+  liveDot: '#12B76A',
+  night: '#6236E0',
+  nightSoft: '#EFE9FF',
+  warn: '#B23A0A',
+  warnSoft: '#FFEEDF',
+  mapGrid: '#E8ECF0',
+  shadow: 'rgba(12, 18, 32, 0.12)',
 };
 
 const dark: typeof light = {
-  bg: '#14110F',
-  surface: '#1E1A17',
-  surfaceAlt: '#2A2420',
-  text: '#F4EEE8',
-  textMuted: '#A99E93',
-  border: '#3A322C',
-  accent: '#F5A524',
-  accentText: '#1A1205',
-  accentSoft: '#3A2A12',
-  danger: '#F0646B',
-  dangerSoft: '#3A1C1E',
-  live: '#4ADE80',
-  liveSoft: '#173322',
-  night: '#A5B4FC',
-  nightSoft: '#22213D',
-  mapGrid: '#4A4038',
+  bg: '#0A0E15',
+  surface: '#141A24',
+  surfaceAlt: '#1C2431',
+  text: '#EEF2F8',
+  textMuted: '#97A1B2',
+  border: '#263042',
+  primary: '#EEF2F8',
+  primaryText: '#0A0E15',
+  accent: '#7D9BFF',
+  accentText: '#0A0E15',
+  accentSoft: '#1B2547',
+  danger: '#FF6B73',
+  dangerSoft: '#3A1A20',
+  live: '#3DDC97',
+  liveSoft: '#12301F',
+  liveDot: '#3DDC97',
+  night: '#B39CFF',
+  nightSoft: '#251D45',
+  warn: '#FFA266',
+  warnSoft: '#3A2416',
+  mapGrid: '#121821',
   shadow: 'rgba(0, 0, 0, 0.5)',
 };
 
@@ -82,5 +94,15 @@ export function useTheme(): Theme {
   return useMemo(() => ({ ...(isDark ? dark : light), isDark }), [isDark]);
 }
 
-export const radius = { sm: 8, md: 14, lg: 22, pill: 999 };
+// sm: chips and small controls · md: inputs and secondary buttons · lg: cards · sheet: bottom sheets
+export const radius = { sm: 10, md: 14, lg: 24, sheet: 28, pill: 999 };
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
+
+// Load these with expo-font before using them (Google Fonts, OFL licence).
+export const fonts = {
+  display: 'BricolageGrotesque_700Bold',
+  body: 'Geist_400Regular',
+  bodyMedium: 'Geist_500Medium',
+  bodySemibold: 'Geist_600SemiBold',
+  mono: 'GeistMono_500Medium',
+};

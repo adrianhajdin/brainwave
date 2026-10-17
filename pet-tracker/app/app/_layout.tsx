@@ -1,13 +1,17 @@
 // Background location task must be defined at startup (expo-task-manager).
 import '../src/tracking/background';
 
+import { BricolageGrotesque_700Bold } from '@expo-google-fonts/bricolage-grotesque';
+import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold } from '@expo-google-fonts/geist';
+import { GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 import { Stack } from 'expo-router';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppProvider } from '../src/AppProvider';
 import { configureNotifications } from '../src/notifications/push';
-import { ThemePrefProvider, useTheme } from '../src/theme';
+import { fonts, ThemePrefProvider, useTheme } from '../src/theme';
 
 configureNotifications();
 
@@ -20,12 +24,12 @@ function ThemedStack() {
         screenOptions={{
           headerStyle: { backgroundColor: t.bg },
           headerTintColor: t.text,
-          headerTitleStyle: { fontWeight: '800' },
+          headerTitleStyle: { fontFamily: fonts.display, fontSize: 18 },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: t.bg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'My cats' }} />
+        <Stack.Screen name="index" options={{ title: 'My cats', headerLargeTitle: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="reset-password" options={{ title: 'Reset password' }} />
         <Stack.Screen name="add-cat" options={{ title: 'Add a cat', presentation: 'modal' }} />
@@ -39,6 +43,15 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  // Fonts are bundled from @expo-google-fonts, so the first frame waits for them.
+  const [loaded] = useFonts({
+    BricolageGrotesque_700Bold,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    GeistMono_500Medium,
+  });
+  if (!loaded) return null;
   return (
     <SafeAreaProvider>
       <ThemePrefProvider>

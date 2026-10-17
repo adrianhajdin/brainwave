@@ -21,7 +21,7 @@ import { Button, Card, ErrorText, IconButton, Pill, SectionTitle, Segmented } fr
 import { ask, messageOf } from '../../src/dialogs';
 import { distanceM, formatDistance, inNightWindow, isLive, relativeTime } from '../../src/geo';
 import { fmtDuration } from '../../src/time';
-import { radius, space, useTheme } from '../../src/theme';
+import { fonts, radius, space, useTheme } from '../../src/theme';
 
 const ROUTE_RANGES = [
   { value: 1, label: '1 h' },
@@ -239,33 +239,31 @@ export default function CatScreen() {
         <TrackerBanner />
         <ErrorText>{errors.load}</ErrorText>
 
-        <Card style={styles.statusCard}>
-          <View style={{ flex: 1, gap: space.xs }}>
-            <View style={styles.pillRow}>
-              <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
-              <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
-              {!owner && <Pill label="Shared with you" />}
-              {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
-            </View>
-            <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
-            <Text style={{ color: lowBattery ? t.danger : t.textMuted, lineHeight: 20 }}>
-              {[
-                cat.lastAccuracyM !== null ? `GPS accuracy about ${Math.round(cat.lastAccuracyM)} m` : null,
-                cat.lastBatteryPct ? (lowBattery ? `Battery low: ${cat.lastBatteryPct}%` : `Battery ${cat.lastBatteryPct}%`) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ') || ' '}
-            </Text>
+        <View style={{ gap: space.xs }}>
+          <View style={styles.pillRow}>
+            <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
+            <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
+            {!owner && <Pill label="Shared with you" />}
+            {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
           </View>
-        </Card>
+          <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
+          <Text style={{ color: lowBattery ? t.warn : t.textMuted, lineHeight: 20 }}>
+            {[
+              cat.lastAccuracyM !== null ? `GPS accuracy about ${Math.round(cat.lastAccuracyM)} m` : null,
+              cat.lastBatteryPct ? (lowBattery ? `Battery low: ${cat.lastBatteryPct}%` : `Battery ${cat.lastBatteryPct}%`) : null,
+            ]
+              .filter(Boolean)
+              .join(' · ') || ' '}
+          </Text>
+        </View>
 
         {/* Lost mode: the most important action on this screen */}
-        <Card style={[{ gap: space.sm }, cat.lostMode && { borderColor: t.danger, borderWidth: 2, backgroundColor: t.dangerSoft }]}>
+        <Card style={[{ gap: space.sm }, cat.lostMode && { backgroundColor: t.dangerSoft }]}>
           {cat.lostMode ? (
             <>
               <View style={styles.lostTitle}>
                 <Ionicons name="alert-circle" size={26} color={t.danger} />
-                <Text style={[styles.big, { color: t.danger, marginTop: 0 }]}>Lost mode is on</Text>
+                <Text style={[styles.big, { color: t.danger, marginTop: 0 }]}>{cat.name} is in lost mode</Text>
               </View>
               <Text style={{ color: t.text, lineHeight: 20 }}>
                 Since {cat.lostModeSince ? relativeTime(cat.lostModeSince) : 'just now'}.{' '}
@@ -274,7 +272,24 @@ export default function CatScreen() {
               <Button title={`${cat.name} is found · turn off`} variant="secondary" busy={busy === 'lost'} onPress={() => void toggleLost()} />
             </>
           ) : (
-            <Button title={`${cat.name} is missing · lost mode`} icon="alert-circle" variant="danger" busy={busy === 'lost'} onPress={() => void toggleLost()} />
+            <View style={styles.lostRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 16 }}>Can't find {cat.name}?</Text>
+                <Text style={{ color: t.textMuted, lineHeight: 20, marginTop: 2 }}>
+                  Lost mode reports more often and alerts your household.
+                </Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Turn on lost mode for ${cat.name}`}
+                disabled={busy === 'lost'}
+                onPress={() => void toggleLost()}
+                style={({ pressed }) => [styles.lostPill, { backgroundColor: t.danger, opacity: pressed ? 0.8 : 1 }]}
+              >
+                <Ionicons name="alert-circle" size={16} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: fonts.bodySemibold }}>Lost mode</Text>
+              </Pressable>
+            </View>
           )}
           <ErrorText>{errors.lost}</ErrorText>
         </Card>
@@ -317,13 +332,16 @@ export default function CatScreen() {
                   onSeek={seek}
                   color={cat.color}
                 />
+                <Text style={[styles.mono, { color: t.text }]}>
+                  {cursor ? new Date(cursor.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Route'}
+                </Text>
                 <Text style={{ color: t.textMuted }}>
-                  {cursor ? new Date(cursor.at).toLocaleString() : 'Smoothed route · drag the bar or press Replay to follow it'}
+                  {cursor ? new Date(cursor.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : 'Smoothed route · drag the bar or press Replay to follow it'}
                 </Text>
                 <View style={styles.controls}>
                   <IconButton icon="play-back" label="Previous point" onPress={() => setReplayIndex((i) => Math.max(0, (i ?? 1) - 1))} />
                   <Button
-                    title={playing ? 'Pause' : 'Replay'}
+                    title={playing ? 'Pause' : 'Play'}
                     icon={playing ? 'pause' : 'play'}
                     style={{ flex: 1 }}
                     onPress={() => {
@@ -369,8 +387,10 @@ export default function CatScreen() {
             ) : (
               heat.slice(0, 3).map((c, i) => (
                 <View key={`${c.lat},${c.lng}`} style={styles.rankRow}>
-                  <Text style={[styles.rank, { color: t.accent, backgroundColor: t.accentSoft }]}>{i + 1}</Text>
-                  <Text style={{ color: t.text, flex: 1 }}>
+                  <View style={[styles.rank, { backgroundColor: i === 0 ? t.danger : t.primary }]}>
+                    <Text style={{ color: '#fff', fontFamily: fonts.bodySemibold }}>{i + 1}</Text>
+                  </View>
+                  <Text style={{ color: t.text, flex: 1, fontFamily: fonts.bodyMedium }}>
                     {fmtDuration(c.weightS)}
                     <Text style={{ color: t.textMuted }}>
                       {cat.lastLat !== null && cat.lastLng !== null ? `  ·  ${formatDistance(distanceM(c.lat, c.lng, cat.lastLat, cat.lastLng))} from ${cat.name} now` : ''}
@@ -432,12 +452,18 @@ export default function CatScreen() {
         )}
 
         {owner ? (
-          <Button
-            title={`Edit ${cat.name}`}
-            icon="options-outline"
-            variant="secondary"
+          <Pressable
+            accessibilityRole="button"
             onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })}
-          />
+            style={({ pressed }) => [styles.editRow, { backgroundColor: t.surface, opacity: pressed ? 0.85 : 1 }]}
+          >
+            <Ionicons name="options-outline" size={22} color={t.text} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>Edit {cat.name}</Text>
+              <Text style={{ color: t.textMuted, fontSize: 13 }}>Photo, name, colour and night watch</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
+          </Pressable>
         ) : (
           <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>{cat.name} is shared with you by your household.</Text>
         )}
@@ -450,9 +476,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md },
   scroll: { padding: space.lg, gap: space.lg, paddingBottom: space.xl * 2, maxWidth: 640, width: '100%', alignSelf: 'center' },
   layerBar: { position: 'absolute', left: space.lg, right: space.lg, bottom: space.md },
-  statusCard: { flexDirection: 'row', alignItems: 'center' },
   pillRow: { flexDirection: 'row', gap: space.xs, alignItems: 'center', flexWrap: 'wrap' },
-  big: { fontSize: 22, fontWeight: '900', marginTop: space.sm },
+  big: { fontSize: 32, fontFamily: fonts.display, letterSpacing: -0.6, marginTop: space.xs },
+  mono: { fontFamily: 'GeistMono_500Medium', fontSize: 28, marginTop: space.sm },
+  lostRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  lostPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.md, paddingVertical: 10, borderRadius: radius.pill },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.lg },
   lostTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   controls: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
@@ -460,5 +489,5 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   legendBar: { flex: 1, height: 10, borderRadius: radius.pill, overflow: 'hidden', flexDirection: 'row' },
   rankRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  rank: { width: 28, height: 28, borderRadius: 14, textAlign: 'center', lineHeight: 28, fontWeight: '900', overflow: 'hidden' },
+  rank: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
 });
