@@ -17,7 +17,9 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~58.0.14",
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "^9.2.1",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "@supabase/supabase-js": "^2.118.0",
     "expo": "~58.0.13",

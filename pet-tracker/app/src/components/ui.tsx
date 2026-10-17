@@ -1,7 +1,11 @@
+import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { radius, space, useTheme } from '../theme';
+
+/** Icon names from the Ionicons set; the app uses icons instead of emoji. */
+export type IconName = keyof typeof Ionicons.glyphMap;
 
 export function CatAvatar({
   name, color, size = 40, ring, photoUrl, badge,
@@ -12,8 +16,8 @@ export function CatAvatar({
   ring?: string;
   /** Resolved photo URL (see usePhotoUrl); falls back to the initial. */
   photoUrl?: string | null;
-  /** Small corner badge, e.g. '!' for lost mode or '🔋' for low battery. */
-  badge?: { text: string; color: string } | null;
+  /** Small corner badge: lost mode or low battery (see catBadge). */
+  badge?: { icon: IconName; color: string } | null;
 }) {
   const ear = size * 0.28;
   return (
@@ -35,8 +39,13 @@ export function CatAvatar({
         )}
       </View>
       {badge && (
-        <View style={[styles.badge, { backgroundColor: badge.color, minWidth: size * 0.42, height: size * 0.42, borderRadius: size * 0.21 }]}>
-          <Text style={{ color: '#fff', fontWeight: '900', fontSize: size * 0.24 }}>{badge.text}</Text>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: badge.color, width: size * 0.44, height: size * 0.44, borderRadius: size * 0.22 },
+          ]}
+        >
+          <Ionicons name={badge.icon} size={size * 0.25} color="#fff" />
         </View>
       )}
     </View>
@@ -46,7 +55,7 @@ export function CatAvatar({
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 
 export function Button({
-  title, onPress, variant = 'primary', disabled, busy, style, icon, textColor,
+  title, onPress, variant = 'primary', disabled, busy, style, icon, textColor, accessibilityLabel,
 }: {
   title: string;
   onPress: () => void;
@@ -54,8 +63,9 @@ export function Button({
   disabled?: boolean;
   busy?: boolean;
   style?: StyleProp<ViewStyle>;
-  icon?: string;
+  icon?: IconName;
   textColor?: string;
+  accessibilityLabel?: string;
 }) {
   const t = useTheme();
   const bg = { primary: t.accent, secondary: t.surfaceAlt, ghost: 'transparent', danger: 'transparent' }[variant];
@@ -63,6 +73,8 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: !!(disabled || busy), busy: !!busy }}
       onPress={onPress}
       disabled={disabled || busy}
       style={({ pressed }) => [
@@ -75,8 +87,29 @@ export function Button({
       {busy ? (
         <ActivityIndicator color={fg} />
       ) : (
-        <Text style={[styles.buttonText, { color: fg }]}>{icon ? `${icon}  ${title}` : title}</Text>
+        <View style={styles.buttonInner}>
+          {icon && <Ionicons name={icon} size={18} color={fg} />}
+          <Text style={[styles.buttonText, { color: fg }]}>{title}</Text>
+        </View>
       )}
+    </Pressable>
+  );
+}
+
+/** Icon-only button; the label is read by screen readers. */
+export function IconButton({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
+  const t = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.iconButton, { backgroundColor: t.surfaceAlt, opacity: disabled ? 0.4 : pressed ? 0.7 : 1 }]}
+    >
+      <Ionicons name={icon} size={22} color={t.text} />
     </Pressable>
   );
 }
@@ -90,7 +123,7 @@ export function Card({ children, style }: { children: ReactNode; style?: StylePr
   );
 }
 
-export function Pill({ label, tone = 'neutral' }: { label: string; tone?: 'neutral' | 'live' | 'accent' | 'danger' | 'night' }) {
+export function Pill({ label, tone = 'neutral', icon }: { label: string; tone?: 'neutral' | 'live' | 'accent' | 'danger' | 'night'; icon?: IconName }) {
   const t = useTheme();
   const colors = {
     neutral: [t.surfaceAlt, t.textMuted],
@@ -101,7 +134,10 @@ export function Pill({ label, tone = 'neutral' }: { label: string; tone?: 'neutr
   }[tone];
   return (
     <View style={[styles.pill, { backgroundColor: colors[0] }]}>
-      <Text style={[styles.pillText, { color: colors[1] }]}>{label}</Text>
+      <View style={styles.pillInner}>
+        {icon && <Ionicons name={icon} size={13} color={colors[1]} />}
+        <Text style={[styles.pillText, { color: colors[1] }]}>{label}</Text>
+      </View>
     </View>
   );
 }
@@ -109,6 +145,13 @@ export function Pill({ label, tone = 'neutral' }: { label: string; tone?: 'neutr
 export function SectionTitle({ children }: { children: ReactNode }) {
   const t = useTheme();
   return <Text style={[styles.section, { color: t.textMuted }]}>{children}</Text>;
+}
+
+/** Error message placed next to the control that failed. Renders nothing without a message. */
+export function ErrorText({ children }: { children?: string | null }) {
+  const t = useTheme();
+  if (!children) return null;
+  return <Text accessibilityRole="alert" style={{ color: t.danger, lineHeight: 20 }}>{children}</Text>;
 }
 
 export function Segmented<T extends string | number>({
@@ -131,7 +174,7 @@ export function Segmented<T extends string | number>({
             onPress={() => onChange(o.value)}
             style={[styles.segment, selected && { backgroundColor: t.surface, shadowColor: t.shadow, shadowOpacity: 1, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 }]}
           >
-            <Text style={{ color: selected ? t.text : t.textMuted, fontWeight: selected ? '700' : '500' }}>{o.label}</Text>
+            <Text style={{ color: selected ? t.text : t.textMuted, fontWeight: selected ? '700' : '500', textAlign: 'center' }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -142,7 +185,7 @@ export function Segmented<T extends string | number>({
 const styles = StyleSheet.create({
   badge: {
     position: 'absolute', right: -2, bottom: -2, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff', paddingHorizontal: 2,
+    borderWidth: 2, borderColor: '#fff',
   },
   ear: {
     position: 'absolute', top: 0, width: 0, height: 0,
@@ -152,14 +195,17 @@ const styles = StyleSheet.create({
     minHeight: 48, borderRadius: radius.md, paddingHorizontal: space.lg,
     alignItems: 'center', justifyContent: 'center',
   },
+  buttonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   buttonText: { fontSize: 16, fontWeight: '700' },
+  iconButton: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   card: {
     borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: space.lg,
     shadowOpacity: 1, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
   pill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' },
+  pillInner: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   pillText: { fontSize: 12, fontWeight: '700' },
   section: { fontSize: 13, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: space.sm },
   segmented: { flexDirection: 'row', borderRadius: radius.md, padding: 3 },
-  segment: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: radius.md - 3 },
+  segment: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 4, borderRadius: radius.md - 3 },
 });

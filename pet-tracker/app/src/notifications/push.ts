@@ -37,16 +37,21 @@ export function configureNotifications(): void {
   }
 }
 
-export type PushStatus = 'unsupported' | 'denied' | 'registered' | 'error';
+/** idle: not allowed yet and not asked; the user turns alerts on from Settings. */
+export type PushStatus = 'idle' | 'unsupported' | 'denied' | 'registered' | 'error';
 
-/** Ask permission, get the Expo push token and store it for this user. */
-export async function registerForPush(backend: Backend): Promise<{ status: PushStatus; token?: string; error?: string }> {
+/**
+ * Get the Expo push token and store it for this user. The system permission
+ * prompt only appears when `ask` is true, i.e. after the user chose to turn
+ * alerts on (see the explanation in Settings).
+ */
+export async function registerForPush(backend: Backend, { ask }: { ask: boolean }): Promise<{ status: PushStatus; token?: string; error?: string }> {
   if (!capabilities.push || backend.mode !== 'supabase' || !Device.isDevice) return { status: 'unsupported' };
   try {
     configureNotifications();
     let perm = await Notifications.getPermissionsAsync();
-    if (perm.status !== 'granted') perm = await Notifications.requestPermissionsAsync();
-    if (perm.status !== 'granted') return { status: 'denied' };
+    if (perm.status !== 'granted' && ask) perm = await Notifications.requestPermissionsAsync();
+    if (perm.status !== 'granted') return { status: perm.status === 'undetermined' ? 'idle' : 'denied' };
 
     const token = (await Notifications.getExpoPushTokenAsync({ projectId: easProjectId! })).data;
     await backend.registerPushToken(token, Platform.OS === 'ios' ? 'ios' : 'android');

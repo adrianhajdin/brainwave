@@ -3,6 +3,7 @@
  * single-series bar chart in the cat's colour (one series -> no legend; text
  * stays in text colours; tap a bar for its value).
  */
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -38,7 +39,9 @@ export function ActivityCard({ days, color, name, kind }: { days: ActivityDay[];
       <SectionTitle>Activity (estimated)</SectionTitle>
 
       <View style={styles.levelRow}>
-        <Text style={{ fontSize: 28 }}>{level.emoji}</Text>
+        <View style={[styles.levelIcon, { backgroundColor: t.accentSoft }]}>
+          <Ionicons name={level.icon} size={26} color={color} />
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.level, { color: t.text }]}>{level.label}</Text>
           <Text style={{ color: t.textMuted }}>Today compared with {name}'s last 6 days</Text>
@@ -105,6 +108,7 @@ function Stat({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   levelRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  levelIcon: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   level: { fontSize: 20, fontWeight: '900' },
   stats: { flexDirection: 'row', gap: space.sm },
   stat: { flex: 1, borderRadius: radius.md, padding: space.sm },

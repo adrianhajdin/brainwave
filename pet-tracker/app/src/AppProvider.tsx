@@ -27,6 +27,10 @@ interface AppState {
   backend: Backend | null;
   supabaseConfigured: boolean;
   cats: Cat[];
+  /** When the cat list was last fetched successfully (ms since epoch). */
+  lastSyncAt: number | null;
+  /** The last fetch failed, so positions on screen may be out of date. */
+  syncFailed: boolean;
   alert: CatEvent | null;
   dismissAlert: () => void;
   startDemo: () => void;
@@ -42,6 +46,8 @@ interface AppState {
   /** Interval actually used now (lost mode / night watch can shorten it). */
   effectiveIntervalS: number;
   push: { status: PushStatus | 'pending'; error?: string };
+  /** Asks for notification permission (call only after the user agreed in Settings). */
+  enablePush: () => Promise<void>;
   /** Cat to open after tapping a notification (consumed by the home screen). */
   openCatRequest: string | null;
   clearOpenCatRequest: () => void;
@@ -63,6 +69,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [intervalS, setIntervalSState] = useState<number>(15);
   const [push, setPush] = useState<AppState['push']>({ status: 'pending' });
   const [openCatRequest, setOpenCatRequest] = useState<string | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+  const [syncFailed, setSyncFailed] = useState(false);
   const [clock, setClock] = useState(minuteOfDay());
 
   // Re-evaluate the night window every minute.
@@ -106,16 +114,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, [backend]);
 
-  // Push notifications: register this device and route taps to the cat.
+  // Push notifications: register this device if it already has permission
+  // (no system prompt here) and route taps to the cat.
   useEffect(() => {
     if (!backend) return;
     let active = true;
-    void registerForPush(backend).then((r) => active && setPush({ status: r.status, error: r.error }));
+    void registerForPush(backend, { ask: false }).then((r) => active && setPush({ status: r.status, error: r.error }));
     const unsubscribe = onNotificationOpened((catId) => setOpenCatRequest(catId));
     return () => {
       active = false;
       unsubscribe();
     };
+  }, [backend]);
+
+  const enablePush = useCallback(async () => {
+    if (!backend) return;
+    const r = await registerForPush(backend, { ask: true });
+    setPush({ status: r.status, error: r.error });
   }, [backend]);
 
   const upsertCat = useCallback((cat: Cat) => {
@@ -138,14 +153,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [backend]);
 
   // Snapshot + live channel, re-synced on reconnect like Traccar's
-  // SocketController (REST snapshot, then push updates).
+  // SocketController (REST snapshot, then push updates). The snapshot is
+  // re-fetched every minute so a dropped connection shows up as "not synced".
   useEffect(() => {
     if (!backend) {
       setCats([]);
+      setLastSyncAt(null);
+      setSyncFailed(false);
       return;
     }
     let active = true;
-    void backend.listCats().then((list) => active && setCats(list)).catch(() => undefined);
+    const sync = () =>
+      backend
+        .listCats()
+        .then((list) => {
+          if (!active) return;
+          setCats(list);
+          setLastSyncAt(Date.now());
+          setSyncFailed(false);
+        })
+        .catch(() => active && setSyncFailed(true));
+    void sync();
+    const poll = setInterval(() => void sync(), 60_000);
     const unsubscribe = backend.subscribe({
       onCat: upsertCat,
       onCatRemoved: removeCatLocal,
@@ -153,6 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     return () => {
       active = false;
+      clearInterval(poll);
       unsubscribe();
     };
   }, [backend, upsertCat, removeCatLocal]);
@@ -186,14 +216,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void AsyncStorage.setItem(INTERVAL_KEY, String(s));
   }, []);
 
+  const dismissAlert = useCallback(() => setAlert(null), []);
+
   const value = useMemo<AppState>(
     () => ({
       ready,
       backend,
       supabaseConfigured: supabase !== null,
       cats,
+      lastSyncAt,
+      syncFailed,
       alert,
-      dismissAlert: () => setAlert(null),
+      dismissAlert,
       startDemo: () => setBackend(new DemoBackend()),
       signOut: async () => {
         setTrackedCatIdState(null);
@@ -210,10 +244,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setIntervalS,
       effectiveIntervalS,
       push,
+      enablePush,
       openCatRequest,
       clearOpenCatRequest: () => setOpenCatRequest(null),
     }),
-    [ready, backend, cats, alert, refresh, upsertCat, removeCatLocal, tracker, trackedCatId, setTrackedCatId, intervalS, setIntervalS, effectiveIntervalS, push, openCatRequest],
+    [ready, backend, cats, lastSyncAt, syncFailed, alert, dismissAlert, refresh, upsertCat, removeCatLocal, tracker, trackedCatId, setTrackedCatId, intervalS, setIntervalS, effectiveIntervalS, push, enablePush, openCatRequest],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

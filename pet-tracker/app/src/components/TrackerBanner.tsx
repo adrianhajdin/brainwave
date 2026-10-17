@@ -1,33 +1,49 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../AppProvider';
 import { relativeTime } from '../geo';
 import { radius, space, useTheme } from '../theme';
 
-/** Shows that this phone is acting as a cat's collar, from any screen. */
+/** Shows that this phone is acting as a cat's collar, from any screen. Stop and Settings act from here. */
 export function TrackerBanner({ onPress }: { onPress?: () => void }) {
   const t = useTheme();
-  const { tracker, cats, effectiveIntervalS } = useApp();
+  const { tracker, cats, effectiveIntervalS, setTrackedCatId } = useApp();
   if (tracker.state === 'off') return null;
 
   const cat = cats.find((c) => c.id === tracker.catId);
   const name = cat?.name ?? 'your cat';
+  const every = effectiveIntervalS < 60 ? `${effectiveIntervalS} s` : `${Math.round(effectiveIntervalS / 60)} min`;
+  const last = tracker.lastSentAt ? ` · last update ${relativeTime(tracker.lastSentAt)}` : '';
   const text = {
     starting: `Starting GPS for ${name}…`,
-    tracking: `This phone is ${name}'s tracker${tracker.mode === 'background' ? ' (also with screen off)' : ''} · every ${
-      effectiveIntervalS < 60 ? `${effectiveIntervalS} s` : `${Math.round(effectiveIntervalS / 60)} min`
-    } · ${tracker.sent} fix${tracker.sent === 1 ? '' : 'es'} sent${tracker.lastSentAt ? ` · last ${relativeTime(tracker.lastSentAt)}` : ''}`,
-    denied: 'Location permission denied: allow it in Settings to track with this phone.',
-    error: `Tracking error: ${tracker.error ?? 'unknown'}`,
+    tracking: `This phone is ${name}'s tracker · every ${every}${tracker.mode === 'background' ? ' · works with the screen off' : ''}${last}`,
+    denied: `Location is off, so ${name} is not being tracked from this phone.`,
+    error: `Could not send location: ${tracker.error ?? 'unknown error'}`,
+    off: '',
   }[tracker.state];
-  const tone = tracker.state === 'tracking' || tracker.state === 'starting' ? t.live : t.danger;
+  const problem = tracker.state === 'denied' || tracker.state === 'error';
+  const tone = problem ? t.danger : t.live;
 
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={[styles.banner, { backgroundColor: t.surface, borderColor: tone }]}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${text}. Open ${name}`}
+      style={[styles.banner, { backgroundColor: t.surface, borderColor: tone }]}
+    >
       <View style={[styles.pulse, { backgroundColor: tone }]} />
-      <Text style={[styles.text, { color: t.text }]} numberOfLines={2}>
+      <Text style={[styles.text, { color: t.text }]} numberOfLines={3}>
         {text}
       </Text>
+      {tracker.state === 'denied' ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Open phone settings" onPress={() => void Linking.openSettings().catch(() => undefined)} hitSlop={8}>
+          <Text style={[styles.action, { color: t.accent }]}>Settings</Text>
+        </Pressable>
+      ) : (
+        <Pressable accessibilityRole="button" accessibilityLabel="Stop tracking" onPress={() => setTrackedCatId(null)} hitSlop={8}>
+          <Text style={[styles.action, { color: t.textMuted }]}>Stop</Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -39,4 +55,5 @@ const styles = StyleSheet.create({
   },
   pulse: { width: 10, height: 10, borderRadius: 5 },
   text: { flex: 1, fontWeight: '600' },
+  action: { fontWeight: '700', paddingLeft: space.sm },
 });

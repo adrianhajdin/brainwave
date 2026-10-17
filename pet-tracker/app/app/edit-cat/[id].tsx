@@ -1,15 +1,29 @@
-/** Edit a cat: name, map colour and profile photo (resized to 512 px JPEG). */
-import { SaveFormat, ImageManipulator } from 'expo-image-manipulator';
+/**
+ * Edit a cat: photo, name and colour, night watch, the phone tracker's report
+ * interval, and deleting the cat. Only the owner can open this screen.
+ */
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { useApp } from '../../src/AppProvider';
-import { CAT_COLORS } from '../../src/backend/types';
-import { Button, CatAvatar, SectionTitle } from '../../src/components/ui';
+import { REPORT_INTERVALS, useApp } from '../../src/AppProvider';
+import { CAT_COLORS, isOwner, type NightWatch } from '../../src/backend/types';
+import { Button, Card, CatAvatar, ErrorText, SectionTitle, Segmented } from '../../src/components/ui';
+import { TimeField } from '../../src/components/TimeField';
 import { usePhotoUrl } from '../../src/components/usePhotoUrl';
+import { ask, messageOf } from '../../src/dialogs';
+import { deviceTimezone } from '../../src/time';
 import { radius, space, useTheme } from '../../src/theme';
+
+const NIGHT_INTERVALS = [
+  { value: 120, label: '2 min' },
+  { value: 300, label: '5 min' },
+  { value: 600, label: '10 min' },
+] as const;
+
+type Key = 'photo' | 'save' | 'night' | 'delete';
 
 async function resizeForUpload(uri: string): Promise<string> {
   const ctx = ImageManipulator.manipulate(uri);
@@ -23,24 +37,31 @@ export default function EditCat() {
   const t = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { backend, cats } = useApp();
+  const { backend, cats, intervalS, setIntervalS, trackedCatId, setTrackedCatId, removeCatLocal } = useApp();
   const cat = cats.find((c) => c.id === id);
   const photoUrl = usePhotoUrl(cat?.photoPath);
 
   const [name, setName] = useState(cat?.name ?? '');
   const [color, setColor] = useState(cat?.color ?? CAT_COLORS[0]);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<Key | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
 
   if (!backend || !cat) return null;
+  if (!isOwner(cat, backend)) {
+    return (
+      <View style={[styles.center, { backgroundColor: t.bg }]}>
+        <Text style={{ color: t.textMuted, textAlign: 'center' }}>Only the owner of {cat.name} can change it.</Text>
+      </View>
+    );
+  }
 
-  const run = async (key: string, fn: () => Promise<void>) => {
+  const run = async (key: Key, fn: () => Promise<void>) => {
     setBusy(key);
-    setError(null);
+    setErrors((e) => ({ ...e, [key]: undefined }));
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setErrors((s) => ({ ...s, [key]: messageOf(e) }));
     } finally {
       setBusy(null);
     }
@@ -57,55 +78,129 @@ export default function EditCat() {
       await backend.setPhoto(cat.id, await resizeForUpload(res.assets[0].uri));
     });
 
+  const saveNight = (night: NightWatch) => void run('night', () => backend.setNightWatch(cat.id, night, deviceTimezone()));
+
+  const deleteCat = async () => {
+    const yes = await ask(
+      `Delete ${cat.name}?`,
+      'Its location history, zones and alerts are deleted for everyone in your household. This cannot be undone.',
+      'Delete',
+      true,
+    );
+    if (!yes) return;
+    await run('delete', async () => {
+      await backend.removeCat(cat.id);
+      if (trackedCatId === cat.id) setTrackedCatId(null);
+      removeCatLocal(cat.id);
+      router.replace('/');
+    });
+  };
+
   const input = [styles.input, { backgroundColor: t.surfaceAlt, color: t.text, borderColor: t.border }];
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <View style={styles.preview}>
-        <CatAvatar name={name || cat.name} color={color} size={96} photoUrl={photoUrl} />
-      </View>
-      <View style={styles.row}>
-        <Button style={{ flex: 1 }} variant="secondary" title="Choose photo" icon="🖼️" busy={busy === 'photo'} onPress={() => void pick('library')} />
-        <Button style={{ flex: 1 }} variant="secondary" title="Take photo" icon="📷" onPress={() => void pick('camera')} />
-      </View>
-      {cat.photoPath && <Button title="Remove photo" variant="ghost" onPress={() => void run('photo', () => backend.removePhoto(cat.id))} />}
+      <Card style={{ gap: space.md }}>
+        <View style={styles.preview}>
+          <CatAvatar name={name || cat.name} color={color} size={96} photoUrl={photoUrl} />
+        </View>
+        <View style={styles.row}>
+          <Button style={{ flex: 1 }} variant="secondary" title="Library" icon="image-outline" busy={busy === 'photo'} onPress={() => void pick('library')} />
+          <Button style={{ flex: 1 }} variant="secondary" title="Camera" icon="camera-outline" onPress={() => void pick('camera')} />
+        </View>
+        {cat.photoPath && <Button title="Remove photo" variant="ghost" onPress={() => void run('photo', () => backend.removePhoto(cat.id))} />}
+        <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
+          Photos are resized and visible to everyone in your household.
+        </Text>
+        <ErrorText>{errors.photo}</ErrorText>
+      </Card>
 
-      <SectionTitle>Name</SectionTitle>
-      <TextInput style={input} value={name} onChangeText={setName} maxLength={64} />
+      <Card style={{ gap: space.md }}>
+        <SectionTitle>Name</SectionTitle>
+        <TextInput style={input} value={name} onChangeText={setName} maxLength={64} accessibilityLabel="Cat name" />
 
-      <SectionTitle>Map colour</SectionTitle>
-      <View style={styles.swatches}>
-        {CAT_COLORS.map((c) => (
-          <Pressable
-            key={c}
-            accessibilityRole="button"
-            accessibilityLabel={`Colour ${c}`}
-            accessibilityState={{ selected: c === color }}
-            onPress={() => setColor(c)}
-            style={[styles.swatch, { backgroundColor: c, borderColor: c === color ? t.text : 'transparent' }]}
+        <SectionTitle>Map colour</SectionTitle>
+        <View style={styles.swatches}>
+          {CAT_COLORS.map((c) => (
+            <Pressable
+              key={c}
+              accessibilityRole="button"
+              accessibilityLabel={`Colour ${c}`}
+              accessibilityState={{ selected: c === color }}
+              onPress={() => setColor(c)}
+              style={[styles.swatch, { backgroundColor: c, borderColor: c === color ? t.text : 'transparent' }]}
+            />
+          ))}
+        </View>
+
+        <ErrorText>{errors.save}</ErrorText>
+        <Button
+          title="Save"
+          busy={busy === 'save'}
+          disabled={!name.trim()}
+          onPress={() =>
+            void run('save', async () => {
+              await backend.updateCat(cat.id, { name, color });
+              router.back();
+            })
+          }
+        />
+      </Card>
+
+      <Card style={{ gap: space.md }}>
+        <SectionTitle>Night watch</SectionTitle>
+        <View style={styles.switchRow}>
+          <Text style={{ color: t.text, fontWeight: '700', flex: 1 }}>Track more often at night</Text>
+          <Switch
+            accessibilityLabel="Night watch"
+            value={cat.night.enabled}
+            onValueChange={(v) => saveNight({ ...cat.night, enabled: v })}
+            trackColor={{ true: t.night }}
+            disabled={busy === 'night'}
           />
-        ))}
-      </View>
+        </View>
+        <Text style={{ color: t.textMuted, lineHeight: 20 }}>
+          Cats roam at night. During these hours, positions update more often while {cat.name} is on the move.{' '}
+          {cat.kind === 'collar' ? 'The collar picks up changes at its next check-in.' : 'Applies to this phone while it tracks.'}
+        </Text>
+        {cat.night.enabled && (
+          <>
+            <TimeField label="From" minutes={cat.night.startMin} onChange={(m) => saveNight({ ...cat.night, startMin: m })} />
+            <TimeField label="Until" minutes={cat.night.endMin} onChange={(m) => saveNight({ ...cat.night, endMin: m })} />
+            <Text style={{ color: t.textMuted, fontSize: 13 }}>Update every</Text>
+            <Segmented options={NIGHT_INTERVALS} value={cat.night.intervalS as 120 | 300 | 600} onChange={(v) => saveNight({ ...cat.night, intervalS: v })} />
+          </>
+        )}
+        <ErrorText>{errors.night}</ErrorText>
+      </Card>
 
-      {error && <Text style={{ color: t.danger }}>{error}</Text>}
-      <Button
-        title="Save"
-        busy={busy === 'save'}
-        disabled={!name.trim()}
-        onPress={() => void run('save', async () => {
-          await backend.updateCat(cat.id, { name, color });
-          router.back();
-        })}
-      />
+      {cat.kind === 'phone' && (
+        <Card style={{ gap: space.md }}>
+          <SectionTitle>Phone tracker</SectionTitle>
+          <Text style={{ color: t.textMuted, lineHeight: 20 }}>How often this phone sends its location. Lost mode and night watch can shorten this automatically.</Text>
+          <Segmented options={REPORT_INTERVALS.map((r) => ({ value: r.seconds, label: r.label }))} value={intervalS} onChange={setIntervalS} />
+        </Card>
+      )}
+
+      <Card style={{ gap: space.md, borderColor: t.danger }}>
+        <SectionTitle>Delete {cat.name}</SectionTitle>
+        <Text style={{ color: t.textMuted, lineHeight: 20 }}>
+          Removes {cat.name} with its location history, zones and alerts for everyone in your household. This cannot be undone.
+        </Text>
+        <ErrorText>{errors.delete}</ErrorText>
+        <Button title={`Delete ${cat.name} and its history`} variant="danger" icon="trash-outline" busy={busy === 'delete'} onPress={() => void deleteCat()} />
+      </Card>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: space.xl, gap: space.sm, maxWidth: 560, width: '100%', alignSelf: 'center' },
-  preview: { alignItems: 'center', marginBottom: space.md },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xl },
+  scroll: { padding: space.lg, gap: space.lg, paddingBottom: space.xl * 2, maxWidth: 560, width: '100%', alignSelf: 'center' },
+  preview: { alignItems: 'center', marginBottom: space.sm },
   row: { flexDirection: 'row', gap: space.sm },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, marginBottom: space.md },
-  swatches: { flexDirection: 'row', gap: space.md, marginBottom: space.lg, flexWrap: 'wrap' },
+  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16 },
+  swatches: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap' },
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 3 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
 });

@@ -230,14 +230,16 @@ export function estimateActivity(
     }));
 }
 
+export type ActivityIcon = 'bed-outline' | 'paw-outline' | 'cafe-outline' | 'walk-outline' | 'compass-outline';
+
 /** Friendly label for today compared with the cat's own recent average. */
-export function activityLevel(todayM: number, history: readonly number[]): { label: string; emoji: string } {
+export function activityLevel(todayM: number, history: readonly number[]): { label: string; icon: ActivityIcon } {
   const past = history.filter((m) => m > 0);
   const avg = past.length ? past.reduce((s, m) => s + m, 0) / past.length : 0;
-  if (todayM < 50) return { label: 'Lazy day', emoji: '😴' };
-  if (avg === 0) return { label: 'Out and about', emoji: '🐾' };
+  if (todayM < 50) return { label: 'Lazy day', icon: 'bed-outline' };
+  if (avg === 0) return { label: 'Out and about', icon: 'paw-outline' };
   const ratio = todayM / avg;
-  if (ratio < 0.6) return { label: 'Taking it easy', emoji: '🛋️' };
-  if (ratio <= 1.4) return { label: 'Usual rounds', emoji: '🐾' };
-  return { label: 'Explorer mode', emoji: '🧭' };
+  if (ratio < 0.6) return { label: 'Taking it easy', icon: 'cafe-outline' };
+  if (ratio <= 1.4) return { label: 'Usual rounds', icon: 'walk-outline' };
+  return { label: 'Explorer mode', icon: 'compass-outline' };
 }

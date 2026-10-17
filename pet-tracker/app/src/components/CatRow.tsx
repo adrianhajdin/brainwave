@@ -10,11 +10,9 @@ export function CatRow({ cat, trackedByPhone, shared, onPress }: { cat: Cat; tra
   const t = useTheme();
   const photoUrl = usePhotoUrl(cat.photoPath);
   const live = isLive(cat.lastFixAt, trackedByPhone || cat.lostMode ? 5 * 60 : 20 * 60);
-  const lowBattery = cat.lastBatteryPct !== null && cat.lastBatteryPct > 0 && cat.lastBatteryPct < 20;
-  const meta = [
-    cat.lastBatteryPct !== null && cat.lastBatteryPct > 0 ? `${lowBattery ? '🪫' : '🔋'} ${cat.lastBatteryPct}%` : null,
-    cat.lastAccuracyM !== null ? `± ${Math.round(cat.lastAccuracyM)} m` : null,
-  ].filter(Boolean);
+  const hasBattery = cat.lastBatteryPct !== null && cat.lastBatteryPct > 0;
+  const lowBattery = hasBattery && cat.lastBatteryPct! < 20;
+  const status = cat.lastFixAt ? `${live ? 'Live' : 'Last seen'} · ${relativeTime(cat.lastFixAt)}` : 'Waiting for first location';
 
   return (
     <Pressable
@@ -29,14 +27,18 @@ export function CatRow({ cat, trackedByPhone, shared, onPress }: { cat: Cat; tra
           <Text style={[styles.name, { color: t.text }]} numberOfLines={1}>
             {cat.name}
           </Text>
-          {cat.lostMode && <Pill label="LOST" tone="danger" />}
-          {trackedByPhone && <Pill label="📱 this phone" tone="accent" />}
-          {shared && <Pill label="shared" />}
-          {cat.night.enabled && <Pill label="🌙" tone="night" />}
+          {cat.lostMode && <Pill label="Lost" tone="danger" icon="alert-circle" />}
+          {trackedByPhone && <Pill label="This phone" tone="accent" icon="phone-portrait-outline" />}
+          {shared && <Pill label="Shared" />}
+          {cat.night.enabled && <Pill label="Night watch" tone="night" icon="moon-outline" />}
         </View>
-        <Text style={{ color: lowBattery ? t.danger : t.textMuted, marginTop: 2 }}>
-          {cat.lastFixAt ? `${live ? 'Live' : 'Last seen'} · ${relativeTime(cat.lastFixAt)}` : 'Waiting for first location'}
-          {meta.length ? `  ·  ${meta.join('  ·  ')}` : ''}
+        <Text style={{ color: t.textMuted, marginTop: 2 }}>
+          {status}
+          {hasBattery && (
+            <Text style={{ color: lowBattery ? t.danger : t.textMuted, fontWeight: lowBattery ? '700' : '400' }}>
+              {`  ·  ${lowBattery ? 'Battery low' : 'Battery'} ${cat.lastBatteryPct}%`}
+            </Text>
+          )}
         </Text>
       </View>
       <View style={[styles.dot, { backgroundColor: live ? t.live : t.border }]} />

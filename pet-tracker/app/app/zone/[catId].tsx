@@ -112,8 +112,10 @@ export default function NewZone() {
         </View>
       </Card>
 
-      {error && <Text style={{ color: t.danger }}>{error}</Text>}
-      <Button title="Save zone" onPress={() => void save()} busy={busy} disabled={!center || !name.trim()} />
+      {error && <Text style={{ color: t.danger, lineHeight: 20 }}>{error}</Text>}
+      {!center && <Text style={{ color: t.textMuted, lineHeight: 20 }}>Set the centre first: use "At my position" or long-press the map.</Text>}
+      {center && !name.trim() && <Text style={{ color: t.textMuted, lineHeight: 20 }}>Give the zone a name.</Text>}
+      <Button title="Save zone" icon="checkmark-circle-outline" onPress={() => void save()} busy={busy} disabled={!center || !name.trim()} />
     </ScrollView>
   );
 }

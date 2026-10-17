@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useApp } from '../AppProvider';
+import type { IconName } from './ui';
 
 /** Resolve a stored cat photo path to a (signed, cached) URL. */
 export function usePhotoUrl(path: string | null | undefined): string | null {
@@ -20,9 +21,14 @@ export function usePhotoUrl(path: string | null | undefined): string | null {
   return url;
 }
 
-/** Badge shown on a cat's avatar: lost mode wins over low battery. */
-export function catBadge(cat: { lostMode: boolean; lastBatteryPct: number | null }, colors: { danger: string; accent: string }) {
-  if (cat.lostMode) return { text: '!', color: colors.danger };
-  if (cat.lastBatteryPct !== null && cat.lastBatteryPct > 0 && cat.lastBatteryPct < 20) return { text: '⚡', color: colors.accent };
+/** Badge on a cat's avatar: lost mode wins over low battery. */
+export function catBadge(
+  cat: { lostMode: boolean; lastBatteryPct: number | null },
+  colors: { danger: string; accent: string },
+): { icon: IconName; color: string } | null {
+  if (cat.lostMode) return { icon: 'alert', color: colors.danger };
+  if (cat.lastBatteryPct !== null && cat.lastBatteryPct > 0 && cat.lastBatteryPct < 20) {
+    return { icon: 'battery-dead', color: colors.accent };
+  }
   return null;
 }
