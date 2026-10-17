@@ -1,13 +1,14 @@
 /**
- * Cat detail: whether the cat is lost and where it is now first, then the
- * map with its layer (live / route / heatmap), and tabs for activity, zones
- * and alerts. Name, photo, night watch, tracker interval and deleting live on
- * the edit screen.
+ * Cat detail. Live: status and lost mode first, then the map with tabs for
+ * activity, zones and alerts. Route and Heatmap: a full-height map with a
+ * bottom sheet, as in the "Clean Signal" designs (02, 03, 04).
+ * Name, photo, night watch, tracker interval and deleting live on the edit screen.
  */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '../../src/AppProvider';
 import { isOwner, type ActivityDay, type CatEvent, type HeatCell, type HomeZone, type TrackPoint } from '../../src/backend/types';
@@ -43,11 +44,18 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]['value'];
 /** Sections that can show an error next to the control that failed. */
-type Section = 'load' | 'lost' | 'tracker' | 'route' | 'zones';
+type Section = 'load' | 'lost' | 'tracker' | 'zones';
+
+const LAYERS = [
+  { value: 'live', label: 'Live' },
+  { value: 'route', label: 'Route' },
+  { value: 'heatmap', label: 'Heatmap' },
+] as const;
 
 export default function CatScreen() {
   const t = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { backend, cats, trackedCatId, setTrackedCatId, tracker, effectiveIntervalS, alert } = useApp();
@@ -142,6 +150,8 @@ export default function CatScreen() {
   const cursor = replayIndex !== null ? track[replayIndex] ?? null : null;
   const shownTrack = replayIndex !== null ? track.slice(0, replayIndex + 1) : track;
   const nightNow = cat.night.enabled && inNightWindow(new Date().getHours() * 60 + new Date().getMinutes(), cat.night.startMin, cat.night.endMin);
+  const immersive = layer !== 'live';
+  const sheetTop = Math.round(height * 0.62);
 
   const run = async (key: Section, fn: () => Promise<void>) => {
     setBusy(key);
@@ -190,22 +200,124 @@ export default function CatScreen() {
     });
   };
 
+  const selectLayer = (v: MapLayer) => {
+    setPlaying(false);
+    setReplayIndex(null);
+    setLayer(v);
+  };
+
+  const routeSheet = (
+    <>
+      <Segmented options={ROUTE_RANGES} value={rangeH as 1 | 24 | 168} onChange={(v) => { setReplayIndex(null); setPlaying(false); setRangeH(v); }} />
+      <View style={styles.statRow}>
+        <Text style={{ color: t.text, fontFamily: fonts.display, fontSize: 20 }}>{formatDistance(walked)} walked</Text>
+        <Text style={{ color: t.textMuted, fontSize: 13 }}>{track.length} positions</Text>
+      </View>
+
+      {track.length > 1 ? (
+        <>
+          <View style={styles.timeLine}>
+            <Text style={[styles.mono, { color: t.text }]}>
+              {cursor
+                ? new Date(cursor.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : new Date(track[track.length - 1]!.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            <Text style={{ color: t.textMuted, fontSize: 13 }}>
+              {cursor ? `Point ${(replayIndex ?? 0) + 1} of ${track.length}` : 'Smoothed route'}
+            </Text>
+          </View>
+          <Scrubber
+            label="Route position"
+            fraction={(replayIndex ?? track.length - 1) / (track.length - 1)}
+            onSeek={seek}
+            color={cat.color}
+          />
+          <View style={styles.scrubLabels}>
+            <Text style={[styles.tiny, { color: t.textMuted }]}>{new Date(track[0]!.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            <Text style={[styles.tiny, { color: t.textMuted }]}>{new Date(track[track.length - 1]!.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+          </View>
+          <View style={styles.controls}>
+            <IconButton icon="play-back" label="Previous point" onPress={() => setReplayIndex((i) => Math.max(0, (i ?? 1) - 1))} />
+            <Button
+              title={playing ? 'Pause' : 'Play'}
+              icon={playing ? 'pause' : 'play'}
+              style={{ flex: 1, height: 52 }}
+              onPress={() => {
+                if (!playing && (replayIndex === null || replayIndex >= track.length - 1)) setReplayIndex(0);
+                setPlaying((p) => !p);
+              }}
+            />
+            <IconButton icon="play-forward" label="Next point" onPress={() => setReplayIndex((i) => Math.min(track.length - 1, (i ?? -1) + 1))} />
+          </View>
+          {replayIndex !== null && (
+            <Pressable accessibilityRole="button" onPress={() => { setPlaying(false); setReplayIndex(null); }} hitSlop={8}>
+              <Text style={{ color: t.accent, fontFamily: fonts.bodySemibold, textAlign: 'center' }}>Stop replay</Text>
+            </Pressable>
+          )}
+        </>
+      ) : (
+        <Text style={{ color: t.textMuted }}>Not enough positions in this period yet.</Text>
+      )}
+      <ErrorText>{errors.load}</ErrorText>
+    </>
+  );
+
+  const heatSheet = (
+    <>
+      <Segmented options={HEAT_RANGES} value={heatRangeH as 24 | 168 | 720} onChange={setHeatRangeH} />
+      <View style={styles.legend}>
+        <View style={styles.legendBar}>
+          {HEAT_LEGEND.map((c) => (
+            <View key={c} style={{ flex: 1, backgroundColor: c }} />
+          ))}
+        </View>
+        <View style={styles.legendLabels}>
+          <Text style={[styles.tiny, { color: t.textMuted }]}>passing by</Text>
+          <Text style={[styles.tiny, { color: t.textMuted }]}>hours spent</Text>
+        </View>
+      </View>
+      {heat.length === 0 ? (
+        <Text style={{ color: t.textMuted }}>Not enough positions in this period yet.</Text>
+      ) : (
+        heat.slice(0, 5).map((c, i) => (
+          <View key={`${c.lat},${c.lng}`} style={[styles.rankRow, { borderBottomColor: t.surfaceAlt }]}>
+            <View style={[styles.rank, { backgroundColor: t.primary }]}>
+              <Text style={{ color: t.primaryText, fontFamily: fonts.display, fontSize: 14 }}>{i + 1}</Text>
+            </View>
+            <View style={{ flex: 1, gap: 6 }}>
+              <View style={styles.rankTop}>
+                <Text style={{ color: t.text, fontFamily: fonts.display, fontSize: 18 }}>{fmtDuration(c.weightS)}</Text>
+                <Text style={{ color: t.textMuted, fontSize: 13 }}>
+                  {cat.lastLat !== null && cat.lastLng !== null ? `${formatDistance(distanceM(c.lat, c.lng, cat.lastLat, cat.lastLng))} from ${cat.name} now` : ''}
+                </Text>
+              </View>
+              <View style={[styles.barTrack, { backgroundColor: t.surfaceAlt }]}>
+                <View style={{ width: `${Math.round((c.weightS / heat[0]!.weightS) * 100)}%`, height: 4, borderRadius: 2, backgroundColor: HEAT_LEGEND[Math.max(0, 3 - i)] }} />
+              </View>
+            </View>
+          </View>
+        ))
+      )}
+    </>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <Stack.Screen
         options={{
           title: cat.name,
+          headerShown: !immersive,
           headerRight: owner
             ? () => (
                 <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${cat.name}`} onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })} hitSlop={12}>
-                  <Text style={{ color: t.accent, fontWeight: '700' }}>Edit</Text>
+                  <Text style={{ color: t.accent, fontFamily: fonts.bodySemibold }}>Edit</Text>
                 </Pressable>
               )
             : undefined,
         }}
       />
 
-      <View style={{ height: Math.round(height * 0.4) }}>
+      <View style={immersive ? StyleSheet.absoluteFill : { height: Math.round(height * 0.4) }}>
         <CatMap
           // While the heatmap or a replay is shown, the cat's live marker would
           // hide the data, so it is only drawn in the live and route views.
@@ -218,256 +330,183 @@ export default function CatScreen() {
           heat={layer === 'heatmap' ? heat : undefined}
           style={StyleSheet.absoluteFill}
         />
-        <View style={styles.layerBar}>
-          <Segmented<MapLayer>
-            options={[
-              { value: 'live', label: 'Live' },
-              { value: 'route', label: 'Route' },
-              { value: 'heatmap', label: 'Heatmap' },
-            ]}
-            value={layer}
-            onChange={(v) => {
-              setPlaying(false);
-              setReplayIndex(null);
-              setLayer(v);
-            }}
-          />
-        </View>
+        {!immersive && (
+          <View style={styles.layerBar}>
+            <Segmented<MapLayer> options={LAYERS} value={layer} onChange={selectLayer} />
+          </View>
+        )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <TrackerBanner />
-        <ErrorText>{errors.load}</ErrorText>
-
-        <View style={{ gap: space.xs }}>
-          <View style={styles.pillRow}>
-            <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
-            <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
-            {!owner && <Pill label="Shared with you" />}
-            {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
-          </View>
-          <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
-          <Text style={{ color: lowBattery ? t.warn : t.textMuted, lineHeight: 20 }}>
-            {[
-              cat.lastAccuracyM !== null ? `GPS accuracy about ${Math.round(cat.lastAccuracyM)} m` : null,
-              cat.lastBatteryPct ? (lowBattery ? `Battery low: ${cat.lastBatteryPct}%` : `Battery ${cat.lastBatteryPct}%`) : null,
-            ]
-              .filter(Boolean)
-              .join(' · ') || ' '}
-          </Text>
-        </View>
-
-        {/* Lost mode: the most important action on this screen */}
-        <Card style={[{ gap: space.sm }, cat.lostMode && { backgroundColor: t.dangerSoft }]}>
-          {cat.lostMode ? (
-            <>
-              <View style={styles.lostTitle}>
-                <Ionicons name="alert-circle" size={26} color={t.danger} />
-                <Text style={[styles.big, { color: t.danger, marginTop: 0 }]}>{cat.name} is in lost mode</Text>
-              </View>
-              <Text style={{ color: t.text, lineHeight: 20 }}>
-                Since {cat.lostModeSince ? relativeTime(cat.lostModeSince) : 'just now'}.{' '}
-                {cat.kind === 'phone' ? 'The tracking phone reports every 15 s.' : 'The collar reports every minute.'} Everyone in the household was notified.
+      {immersive ? (
+        <>
+          <View style={[styles.floatTop, { top: insets.top + 8 }]} pointerEvents="box-none">
+            <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.floatBtn, { backgroundColor: t.surface }]}>
+              <Ionicons name="arrow-back" size={22} color={t.text} />
+            </Pressable>
+            <View style={[styles.floatPill, { backgroundColor: t.surface }]}>
+              <View style={[styles.dot, { backgroundColor: cat.color }]} />
+              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>
+                {cat.name}'s {layer === 'route' ? 'route' : 'favourite places'}
               </Text>
-              <Button title={`${cat.name} is found · turn off`} variant="secondary" busy={busy === 'lost'} onPress={() => void toggleLost()} />
-            </>
-          ) : (
-            <View style={styles.lostRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 16 }}>Can't find {cat.name}?</Text>
-                <Text style={{ color: t.textMuted, lineHeight: 20, marginTop: 2 }}>
-                  Lost mode reports more often and alerts your household.
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Turn on lost mode for ${cat.name}`}
-                disabled={busy === 'lost'}
-                onPress={() => void toggleLost()}
-                style={({ pressed }) => [styles.lostPill, { backgroundColor: t.danger, opacity: pressed ? 0.8 : 1 }]}
-              >
-                <Ionicons name="alert-circle" size={16} color="#fff" />
-                <Text style={{ color: '#fff', fontFamily: fonts.bodySemibold }}>Lost mode</Text>
-              </Pressable>
             </View>
-          )}
-          <ErrorText>{errors.lost}</ErrorText>
-        </Card>
+          </View>
+          <View style={[styles.layerFloat, { top: sheetTop - 58 }]}>
+            <Segmented<MapLayer> options={LAYERS} value={layer} onChange={selectLayer} />
+          </View>
+          <View style={[styles.sheet, { top: sheetTop, paddingBottom: insets.bottom + space.xl, backgroundColor: t.surface }]}>
+            <View style={[styles.grabber, { backgroundColor: t.border }]} />
+            {/* Negative margin + padding keeps the scrubber knob, which overhangs the track, inside the scroll area. */}
+            <ScrollView style={{ marginHorizontal: -12 }} contentContainerStyle={{ gap: 16, paddingHorizontal: 12, paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+              {layer === 'route' ? routeSheet : heatSheet}
+            </ScrollView>
+          </View>
+        </>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <TrackerBanner />
+          <ErrorText>{errors.load}</ErrorText>
 
-        {cat.kind === 'phone' && owner && (
-          <Card style={{ gap: space.md }}>
-            <SectionTitle>Phone tracker</SectionTitle>
-            <Text style={{ color: t.textMuted, lineHeight: 20 }}>
-              {isTracked
-                ? tracker.mode === 'background'
-                  ? `This phone sends its location as ${cat.name} every ${effectiveIntervalS < 60 ? `${effectiveIntervalS} s` : `${Math.round(effectiveIntervalS / 60)} min`}, also with the screen off.`
-                  : `This phone sends its location as ${cat.name} while the app is open. For screen-off tracking, use the installed app and allow location "all the time".`
-                : trackedCatId
-                  ? `This phone is currently tracking another cat. Switching moves the tracker to ${cat.name}.`
-                  : `Use this phone's GPS as ${cat.name}'s collar.`}
+          <View style={{ gap: space.xs }}>
+            <View style={styles.pillRow}>
+              <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
+              <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
+              {!owner && <Pill label="Shared with you" />}
+              {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
+            </View>
+            <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
+            <Text style={{ color: lowBattery ? t.warn : t.textMuted, lineHeight: 20 }}>
+              {[
+                cat.lastAccuracyM !== null ? `GPS accuracy about ${Math.round(cat.lastAccuracyM)} m` : null,
+                cat.lastBatteryPct ? (lowBattery ? `Battery low: ${cat.lastBatteryPct}%` : `Battery ${cat.lastBatteryPct}%`) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || ' '}
             </Text>
-            <Button
-              title={isTracked ? 'Stop tracking' : `Track ${cat.name} with this phone`}
-              variant={isTracked ? 'secondary' : 'primary'}
-              icon={isTracked ? 'stop-circle-outline' : 'navigate-outline'}
-              busy={busy === 'tracker'}
-              onPress={() => void toggleTracking()}
-            />
-            <ErrorText>{errors.tracker}</ErrorText>
-          </Card>
-        )}
+          </View>
 
-        {layer === 'route' && (
-          <Card style={{ gap: space.md }}>
-            <SectionTitle>Route</SectionTitle>
-            <Segmented options={ROUTE_RANGES} value={rangeH as 1 | 24 | 168} onChange={(v) => { setReplayIndex(null); setPlaying(false); setRangeH(v); }} />
-            <Text style={{ color: t.text }}>
-              <Text style={{ fontWeight: '800' }}>{track.length}</Text> positions · walked <Text style={{ fontWeight: '800' }}>{formatDistance(walked)}</Text>
-            </Text>
-            {track.length > 1 ? (
+          {/* Lost mode: the most important action on this screen */}
+          <Card style={[{ gap: space.sm }, cat.lostMode && { backgroundColor: t.dangerSoft }]}>
+            {cat.lostMode ? (
               <>
-                <Scrubber
-                  label="Route position"
-                  fraction={(replayIndex ?? track.length - 1) / (track.length - 1)}
-                  onSeek={seek}
-                  color={cat.color}
-                />
-                <Text style={[styles.mono, { color: t.text }]}>
-                  {cursor ? new Date(cursor.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Route'}
-                </Text>
-                <Text style={{ color: t.textMuted }}>
-                  {cursor ? new Date(cursor.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) : 'Smoothed route · drag the bar or press Replay to follow it'}
-                </Text>
-                <View style={styles.controls}>
-                  <IconButton icon="play-back" label="Previous point" onPress={() => setReplayIndex((i) => Math.max(0, (i ?? 1) - 1))} />
-                  <Button
-                    title={playing ? 'Pause' : 'Play'}
-                    icon={playing ? 'pause' : 'play'}
-                    style={{ flex: 1 }}
-                    onPress={() => {
-                      if (!playing && (replayIndex === null || replayIndex >= track.length - 1)) setReplayIndex(0);
-                      setPlaying((p) => !p);
-                    }}
-                  />
-                  <IconButton icon="play-forward" label="Next point" onPress={() => setReplayIndex((i) => Math.min(track.length - 1, (i ?? -1) + 1))} />
-                  {replayIndex !== null && (
-                    <IconButton
-                      icon="close"
-                      label="Stop replay"
-                      onPress={() => {
-                        setPlaying(false);
-                        setReplayIndex(null);
-                      }}
-                    />
-                  )}
+                <View style={styles.lostTitle}>
+                  <Ionicons name="alert-circle" size={26} color={t.danger} />
+                  <Text style={[styles.big, { color: t.danger, marginTop: 0 }]}>{cat.name} is in lost mode</Text>
                 </View>
+                <Text style={{ color: t.text, lineHeight: 20 }}>
+                  Since {cat.lostModeSince ? relativeTime(cat.lostModeSince) : 'just now'}.{' '}
+                  {cat.kind === 'phone' ? 'The tracking phone reports every 15 s.' : 'The collar reports every minute.'} Everyone in the household was notified.
+                </Text>
+                <Button title={`${cat.name} is found · turn off`} variant="secondary" busy={busy === 'lost'} onPress={() => void toggleLost()} />
               </>
             ) : (
-              <Text style={{ color: t.textMuted }}>Not enough positions in this period yet.</Text>
-            )}
-            <ErrorText>{errors.route}</ErrorText>
-          </Card>
-        )}
-
-        {layer === 'heatmap' && (
-          <Card style={{ gap: space.md }}>
-            <SectionTitle>Favourite places</SectionTitle>
-            <Segmented options={HEAT_RANGES} value={heatRangeH as 24 | 168 | 720} onChange={setHeatRangeH} />
-            <View style={styles.legendRow}>
-              <Text style={{ color: t.textMuted, fontSize: 12 }}>passing by</Text>
-              <View style={styles.legendBar}>
-                {HEAT_LEGEND.map((c) => (
-                  <View key={c} style={{ flex: 1, backgroundColor: c }} />
-                ))}
+              <View style={styles.lostRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 16 }}>Can't find {cat.name}?</Text>
+                  <Text style={{ color: t.textMuted, lineHeight: 20, marginTop: 2 }}>Lost mode reports more often and alerts your household.</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Turn on lost mode for ${cat.name}`}
+                  disabled={busy === 'lost'}
+                  onPress={() => void toggleLost()}
+                  style={({ pressed }) => [styles.lostPill, { backgroundColor: t.danger, opacity: pressed ? 0.8 : 1 }]}
+                >
+                  <Ionicons name="alert-circle" size={16} color="#fff" />
+                  <Text style={{ color: '#fff', fontFamily: fonts.bodySemibold }}>Lost mode</Text>
+                </Pressable>
               </View>
-              <Text style={{ color: t.textMuted, fontSize: 12 }}>hours spent</Text>
-            </View>
-            {heat.length === 0 ? (
-              <Text style={{ color: t.textMuted }}>Not enough positions in this period yet.</Text>
-            ) : (
-              heat.slice(0, 3).map((c, i) => (
-                <View key={`${c.lat},${c.lng}`} style={styles.rankRow}>
-                  <View style={[styles.rank, { backgroundColor: i === 0 ? t.danger : t.primary }]}>
-                    <Text style={{ color: '#fff', fontFamily: fonts.bodySemibold }}>{i + 1}</Text>
+            )}
+            <ErrorText>{errors.lost}</ErrorText>
+          </Card>
+
+          {cat.kind === 'phone' && owner && (
+            <Card style={{ gap: space.md }}>
+              <SectionTitle>Phone tracker</SectionTitle>
+              <Text style={{ color: t.textMuted, lineHeight: 20 }}>
+                {isTracked
+                  ? tracker.mode === 'background'
+                    ? `This phone sends its location as ${cat.name} every ${effectiveIntervalS < 60 ? `${effectiveIntervalS} s` : `${Math.round(effectiveIntervalS / 60)} min`}, also with the screen off.`
+                    : `This phone sends its location as ${cat.name} while the app is open. For screen-off tracking, use the installed app and allow location "all the time".`
+                  : trackedCatId
+                    ? `This phone is currently tracking another cat. Switching moves the tracker to ${cat.name}.`
+                    : `Use this phone's GPS as ${cat.name}'s collar.`}
+              </Text>
+              <Button
+                title={isTracked ? 'Stop tracking' : `Track ${cat.name} with this phone`}
+                variant={isTracked ? 'secondary' : 'primary'}
+                icon={isTracked ? 'stop-circle-outline' : 'navigate-outline'}
+                busy={busy === 'tracker'}
+                onPress={() => void toggleTracking()}
+              />
+              <ErrorText>{errors.tracker}</ErrorText>
+            </Card>
+          )}
+
+          <Segmented<Tab> options={TABS.map((x) => (x.value === 'alerts' && events.length ? { value: x.value, label: `Alerts (${events.length})` } : x))} value={tab} onChange={setTab} />
+
+          {tab === 'activity' && <ActivityCard days={activity} color={cat.color} name={cat.name} kind={cat.kind} />}
+
+          {tab === 'zones' && (
+            <Card style={{ gap: space.md }}>
+              <SectionTitle>Home zones</SectionTitle>
+              {zones.length === 0 && <Text style={{ color: t.textMuted, lineHeight: 20 }}>No zones yet. Get an alert when {cat.name} leaves or comes back.</Text>}
+              {zones.map((z) => {
+                const inside = cat.lastLat !== null && cat.lastLng !== null ? distanceM(z.lat, z.lng, cat.lastLat, cat.lastLng) <= z.radiusM : null;
+                return (
+                  <View key={z.id} style={styles.zoneRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>{z.name}</Text>
+                      <Text style={{ color: t.textMuted, fontSize: 13 }}>
+                        {formatDistance(z.radiusM)} radius{z.allCats ? ' · all cats' : ''}
+                        {inside !== null ? ` · ${cat.name} is ${inside ? 'inside' : 'outside'}` : ''}
+                      </Text>
+                    </View>
+                    {owner && <Button title="Delete" variant="ghost" busy={busy === 'zones'} onPress={() => void removeZone(z)} />}
                   </View>
-                  <Text style={{ color: t.text, flex: 1, fontFamily: fonts.bodyMedium }}>
-                    {fmtDuration(c.weightS)}
-                    <Text style={{ color: t.textMuted }}>
-                      {cat.lastLat !== null && cat.lastLng !== null ? `  ·  ${formatDistance(distanceM(c.lat, c.lng, cat.lastLat, cat.lastLng))} from ${cat.name} now` : ''}
-                    </Text>
-                  </Text>
-                </View>
-              ))
-            )}
-          </Card>
-        )}
+                );
+              })}
+              {owner && <Button title="Add a zone" icon="add" variant="secondary" onPress={() => router.push({ pathname: '/zone/[catId]', params: { catId: cat.id } })} />}
+              <ErrorText>{errors.zones}</ErrorText>
+            </Card>
+          )}
 
-        <Segmented<Tab> options={TABS.map((x) => (x.value === 'alerts' && events.length ? { value: x.value, label: `Alerts (${events.length})` } : x))} value={tab} onChange={setTab} />
-
-        {tab === 'activity' && <ActivityCard days={activity} color={cat.color} name={cat.name} kind={cat.kind} />}
-
-        {tab === 'zones' && (
-          <Card style={{ gap: space.md }}>
-            <SectionTitle>Home zones</SectionTitle>
-            {zones.length === 0 && <Text style={{ color: t.textMuted, lineHeight: 20 }}>No zones yet. Get an alert when {cat.name} leaves or comes back.</Text>}
-            {zones.map((z) => {
-              const inside = cat.lastLat !== null && cat.lastLng !== null ? distanceM(z.lat, z.lng, cat.lastLat, cat.lastLng) <= z.radiusM : null;
-              return (
-                <View key={z.id} style={styles.zoneRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontWeight: '700' }}>{z.name}</Text>
-                    <Text style={{ color: t.textMuted, fontSize: 13 }}>
-                      {formatDistance(z.radiusM)} radius{z.allCats ? ' · all cats' : ''}
-                      {inside !== null ? ` · ${cat.name} is ${inside ? 'inside' : 'outside'}` : ''}
+          {tab === 'alerts' && (
+            <Card style={{ gap: space.md }}>
+              <SectionTitle>Alerts</SectionTitle>
+              {events.length === 0 ? (
+                <Text style={{ color: t.textMuted }}>No zone alerts yet.</Text>
+              ) : (
+                events.slice(0, 20).map((e) => (
+                  <View key={e.id} style={styles.eventRow}>
+                    <Ionicons name={e.transition === 'exit' ? 'exit-outline' : 'home-outline'} size={20} color={e.transition === 'exit' ? t.danger : t.live} />
+                    <Text style={{ color: t.text, flex: 1 }}>
+                      {e.transition === 'exit' ? 'Left' : 'Back in'} {e.zoneName}
+                      <Text style={{ color: t.textMuted }}>{`  ·  ${relativeTime(e.at)}`}</Text>
                     </Text>
                   </View>
-                  {owner && <Button title="Delete" variant="ghost" busy={busy === 'zones'} onPress={() => void removeZone(z)} />}
-                </View>
-              );
-            })}
-            {owner && (
-              <Button title="Add a zone" icon="add" variant="secondary" onPress={() => router.push({ pathname: '/zone/[catId]', params: { catId: cat.id } })} />
-            )}
-            <ErrorText>{errors.zones}</ErrorText>
-          </Card>
-        )}
+                ))
+              )}
+            </Card>
+          )}
 
-        {tab === 'alerts' && (
-          <Card style={{ gap: space.md }}>
-            <SectionTitle>Alerts</SectionTitle>
-            {events.length === 0 ? (
-              <Text style={{ color: t.textMuted }}>No zone alerts yet.</Text>
-            ) : (
-              events.slice(0, 20).map((e) => (
-                <View key={e.id} style={styles.eventRow}>
-                  <Ionicons name={e.transition === 'exit' ? 'exit-outline' : 'home-outline'} size={20} color={e.transition === 'exit' ? t.danger : t.live} />
-                  <Text style={{ color: t.text, flex: 1 }}>
-                    {e.transition === 'exit' ? 'Left' : 'Back in'} {e.zoneName}
-                    <Text style={{ color: t.textMuted }}>{`  ·  ${relativeTime(e.at)}`}</Text>
-                  </Text>
-                </View>
-              ))
-            )}
-          </Card>
-        )}
-
-        {owner ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })}
-            style={({ pressed }) => [styles.editRow, { backgroundColor: t.surface, opacity: pressed ? 0.85 : 1 }]}
-          >
-            <Ionicons name="options-outline" size={22} color={t.text} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>Edit {cat.name}</Text>
-              <Text style={{ color: t.textMuted, fontSize: 13 }}>Photo, name, colour and night watch</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
-          </Pressable>
-        ) : (
-          <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>{cat.name} is shared with you by your household.</Text>
-        )}
-      </ScrollView>
+          {owner ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })}
+              style={({ pressed }) => [styles.editRow, { backgroundColor: t.surface, opacity: pressed ? 0.85 : 1 }]}
+            >
+              <Ionicons name="options-outline" size={22} color={t.text} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>Edit {cat.name}</Text>
+                <Text style={{ color: t.textMuted, fontSize: 13 }}>Photo, name, colour and night watch</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
+            </Pressable>
+          ) : (
+            <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>{cat.name} is shared with you by your household.</Text>
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -476,18 +515,35 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md },
   scroll: { padding: space.lg, gap: space.lg, paddingBottom: space.xl * 2, maxWidth: 640, width: '100%', alignSelf: 'center' },
   layerBar: { position: 'absolute', left: space.lg, right: space.lg, bottom: space.md },
+  layerFloat: { position: 'absolute', left: 20, right: 20 },
+  floatTop: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  floatBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, elevation: 4 },
+  floatPill: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, borderRadius: radius.pill, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, elevation: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  sheet: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
+    paddingHorizontal: 20, paddingTop: 18, gap: 16, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 34, elevation: 10,
+  },
+  grabber: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: -8 },
+  statRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  timeLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  mono: { fontFamily: 'GeistMono_500Medium', fontSize: 26, letterSpacing: -0.5 },
+  tiny: { fontFamily: 'GeistMono_500Medium', fontSize: 12 },
+  scrubLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -10 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  legend: { gap: 4 },
+  legendBar: { height: 8, borderRadius: 4, overflow: 'hidden', flexDirection: 'row' },
+  legendLabels: { flexDirection: 'row', justifyContent: 'space-between' },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  rank: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  rankTop: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+  barTrack: { height: 4, borderRadius: 2 },
   pillRow: { flexDirection: 'row', gap: space.xs, alignItems: 'center', flexWrap: 'wrap' },
   big: { fontSize: 32, fontFamily: fonts.display, letterSpacing: -0.6, marginTop: space.xs },
-  mono: { fontFamily: 'GeistMono_500Medium', fontSize: 28, marginTop: space.sm },
+  lostTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   lostRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   lostPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.md, paddingVertical: 10, borderRadius: radius.pill },
-  editRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.lg },
-  lostTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  controls: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  legendBar: { flex: 1, height: 10, borderRadius: radius.pill, overflow: 'hidden', flexDirection: 'row' },
-  rankRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  rank: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  editRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.lg },
 });

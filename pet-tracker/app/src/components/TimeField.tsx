@@ -46,15 +46,15 @@ export function TimeField({ label, minutes, onChange }: { label: string; minutes
   };
 
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label} ${hhmm(minutes)}, change time`}
         onPress={() => (open ? close() : setOpen(true))}
-        style={[styles.row, styles.field, { backgroundColor: t.surfaceAlt }]}
+        style={[styles.tile, { backgroundColor: t.surfaceAlt }]}
       >
-        <Text style={{ color: t.textMuted, flex: 1 }}>{label}</Text>
-        <Text style={{ color: t.text, fontSize: 18, fontWeight: '800' }}>{hhmm(shown)}</Text>
+        <Text style={{ color: t.textMuted, fontSize: 12 }}>{label}</Text>
+        <Text style={{ color: t.text, fontFamily: 'GeistMono_500Medium', fontSize: 22 }}>{hhmm(shown)}</Text>
       </Pressable>
       {open && (
         <View style={{ marginTop: space.sm }}>
@@ -83,6 +83,6 @@ export function TimeField({ label, minutes, onChange }: { label: string; minutes
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  field: { paddingHorizontal: space.md, paddingVertical: space.md, borderRadius: radius.md },
+  tile: { height: 64, borderRadius: 16, paddingHorizontal: 14, justifyContent: 'center', gap: 2 },
   input: { borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 18, fontWeight: '800', minWidth: 96, textAlign: 'center' },
 });

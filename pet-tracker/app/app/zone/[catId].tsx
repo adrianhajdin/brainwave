@@ -1,16 +1,19 @@
 /**
  * New home zone: name, size and centre (the cat, this phone, or long-press on
  * the map). A zone can apply to one cat or to every cat in the household.
+ * Layout follows the "Clean Signal" design (09-new-zone).
  */
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { useApp } from '../../src/AppProvider';
 import { CatMap } from '../../src/components/CatMap';
-import { Button, Card, SectionTitle, Segmented } from '../../src/components/ui';
-import { radius, space, useTheme } from '../../src/theme';
+import { Button, ErrorText, Segmented } from '../../src/components/ui';
+import { messageOf } from '../../src/dialogs';
+import { fonts, radius, space, useTheme } from '../../src/theme';
 
 const SIZES = [
   { value: 50, label: '50 m' },
@@ -42,6 +45,8 @@ export default function NewZone() {
 
   if (!backend || !cat) return null;
 
+  const cancel = <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={10}><Text style={{ color: t.text, fontSize: 16 }}>Cancel</Text></Pressable>;
+
   const useMyLocation = async () => {
     setError(null);
     const perm = await Location.requestForegroundPermissionsAsync();
@@ -58,17 +63,20 @@ export default function NewZone() {
       await backend.addZone(allCats ? null : cat.id, name, center.lat, center.lng, radiusM);
       router.back();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(messageOf(e));
     } finally {
       setBusy(false);
     }
   };
 
-  const input = [styles.input, { backgroundColor: t.surfaceAlt, color: t.text, borderColor: t.border }];
+  const hint = !center ? 'Set the centre first: use "At my position" or long-press the map.' : !name.trim() ? 'Give the zone a name.' : null;
+  const centreIsCat = center !== null && cat.lastLat === center.lat && cat.lastLng === center.lng;
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <View style={{ height: Math.round(height * 0.32), borderRadius: radius.lg, overflow: 'hidden' }}>
+      <Stack.Screen options={{ title: 'New zone', headerLeft: () => cancel }} />
+
+      <View style={[styles.mapWrap, { height: Math.min(330, Math.round(height * 0.36)) }]}>
         <CatMap
           cats={[cat]}
           focusId={cat.id}
@@ -76,54 +84,102 @@ export default function NewZone() {
           onLongPress={(lat, lng) => setCenter({ lat, lng })}
           style={StyleSheet.absoluteFill}
         />
+        <View style={styles.mapHint} pointerEvents="none">
+          <Ionicons name="hand-left-outline" size={14} color={t.textMuted} />
+          <Text style={{ color: t.textMuted, fontSize: 13 }}>Long-press the map to move the centre</Text>
+        </View>
       </View>
-      <Text style={{ color: t.textMuted, fontSize: 13 }}>Long-press the map to move the centre.</Text>
 
-      <Card style={{ gap: space.md }}>
-        <SectionTitle>Centre</SectionTitle>
-        <View style={{ flexDirection: 'row', gap: space.sm }}>
-          <Button
-            style={{ flex: 1 }}
-            variant="secondary"
-            title={`At ${cat.name}`}
-            disabled={cat.lastLat == null}
-            onPress={() => cat.lastLat != null && cat.lastLng != null && setCenter({ lat: cat.lastLat, lng: cat.lastLng })}
+      <View style={[styles.card, { backgroundColor: t.surface }]}>
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: t.textMuted }]}>Centre</Text>
+          <View style={styles.centreRow}>
+            <Pressable
+              accessibilityRole="radio"
+              accessibilityState={{ selected: centreIsCat }}
+              disabled={cat.lastLat == null}
+              onPress={() => cat.lastLat != null && cat.lastLng != null && setCenter({ lat: cat.lastLat, lng: cat.lastLng })}
+              style={[styles.centreBtn, { borderColor: centreIsCat ? t.text : t.surfaceAlt, backgroundColor: centreIsCat ? t.surface : t.surfaceAlt, opacity: cat.lastLat == null ? 0.45 : 1 }]}
+            >
+              <View style={[styles.swatch, { backgroundColor: cat.color }]} />
+              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>At {cat.name}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void useMyLocation()}
+              style={[styles.centreBtn, { borderColor: t.surfaceAlt, backgroundColor: t.surfaceAlt }]}
+            >
+              <Ionicons name="navigate-outline" size={16} color={t.text} />
+              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>At my position</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: t.textMuted }]}>Name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: t.surfaceAlt, color: t.text, borderColor: t.border }]}
+            value={name}
+            onChangeText={setName}
+            maxLength={64}
+            placeholder="Zone name"
+            placeholderTextColor={t.textMuted}
+            accessibilityLabel="Zone name"
           />
-          <Button style={{ flex: 1 }} variant="secondary" title="At my position" onPress={() => void useMyLocation()} />
+          <View style={styles.chips}>
+            {SUGGESTED.map((s) => {
+              const selected = name === s;
+              return (
+                <Pressable
+                  key={s}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  onPress={() => setName(s)}
+                  style={[styles.chip, { backgroundColor: selected ? t.primary : t.surface, borderColor: selected ? t.primary : t.border }]}
+                >
+                  <Text style={{ color: selected ? t.primaryText : t.text, fontFamily: fonts.bodyMedium }}>{s}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
-        <SectionTitle>Name</SectionTitle>
-        <TextInput style={input} value={name} onChangeText={setName} maxLength={64} placeholder="Zone name" placeholderTextColor={t.textMuted} />
-        <View style={styles.chips}>
-          {SUGGESTED.map((s) => (
-            <Button key={s} title={s} variant={name === s ? 'primary' : 'secondary'} style={styles.chip} onPress={() => setName(s)} />
-          ))}
+        <View style={styles.field}>
+          <Text style={[styles.label, { color: t.textMuted }]}>Size</Text>
+          <Segmented options={SIZES} value={radiusM as 50 | 100 | 250 | 500} onChange={setRadiusM} />
         </View>
-
-        <SectionTitle>Size</SectionTitle>
-        <Segmented options={SIZES} value={radiusM as 50 | 100 | 250 | 500} onChange={setRadiusM} />
 
         <View style={styles.switchRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: t.text, fontWeight: '700' }}>Applies to all cats</Text>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 15 }}>Applies to all cats</Text>
             <Text style={{ color: t.textMuted, fontSize: 13 }}>Including cats you add later.</Text>
           </View>
-          <Switch value={allCats} onValueChange={setAllCats} trackColor={{ true: t.accent }} />
+          <Switch value={allCats} onValueChange={setAllCats} trackColor={{ true: t.primary, false: t.surfaceAlt }} thumbColor="#FFFFFF" accessibilityLabel="Applies to all cats" />
         </View>
-      </Card>
+      </View>
 
-      {error && <Text style={{ color: t.danger, lineHeight: 20 }}>{error}</Text>}
-      {!center && <Text style={{ color: t.textMuted, lineHeight: 20 }}>Set the centre first: use "At my position" or long-press the map.</Text>}
-      {center && !name.trim() && <Text style={{ color: t.textMuted, lineHeight: 20 }}>Give the zone a name.</Text>}
-      <Button title="Save zone" icon="checkmark-circle-outline" onPress={() => void save()} busy={busy} disabled={!center || !name.trim()} />
+      <ErrorText>{error}</ErrorText>
+      {hint && <Text style={{ color: t.textMuted, lineHeight: 20, textAlign: 'center' }}>{hint}</Text>}
+      <Button title={`Save ${name.trim() || 'zone'}`} icon="checkmark" onPress={() => void save()} busy={busy} disabled={!center || !name.trim()} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: space.lg, gap: space.md, maxWidth: 640, width: '100%', alignSelf: 'center' },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { minHeight: 36, paddingHorizontal: space.md },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  scroll: { padding: space.lg, gap: 14, maxWidth: 640, width: '100%', alignSelf: 'center', paddingBottom: space.xl * 2 },
+  mapWrap: { borderRadius: 24, overflow: 'hidden' },
+  mapHint: {
+    position: 'absolute', alignSelf: 'center', bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 32, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  card: { borderRadius: 24, padding: 18, gap: 18 },
+  field: { gap: 8 },
+  label: { fontFamily: fonts.bodySemibold, fontSize: 13 },
+  centreRow: { flexDirection: 'row', gap: 8 },
+  centreBtn: { flex: 1, height: 48, borderRadius: radius.md, borderWidth: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  swatch: { width: 16, height: 16, borderRadius: 8 },
+  input: { height: 48, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, fontSize: 17, fontFamily: fonts.body },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 });

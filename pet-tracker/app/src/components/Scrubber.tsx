@@ -40,15 +40,16 @@ export function Scrubber({ fraction, onSeek, color, label }: { fraction: number;
       <View pointerEvents="none" style={[styles.track, { backgroundColor: t.surfaceAlt }]}>
         <View style={{ width: percent, height: '100%', backgroundColor: color }} />
       </View>
-      <View pointerEvents="none" style={[styles.knob, { left: percent, backgroundColor: color, borderColor: t.surface }]} />
+      <View pointerEvents="none" style={[styles.knob, { left: percent, backgroundColor: t.surface, borderColor: color }]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hit: { height: 32, justifyContent: 'center' },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  hit: { height: 24, justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   knob: {
-    position: 'absolute', width: 18, height: 18, borderRadius: radius.pill, borderWidth: 3, marginLeft: -9,
+    position: 'absolute', width: 22, height: 22, borderRadius: radius.pill, borderWidth: 5, marginLeft: -11,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 2,
   },
 });
