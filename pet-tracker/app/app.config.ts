@@ -86,7 +86,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...(process.env.EAS_PROJECT_ID
     ? {
         updates: { url: `https://u.expo.dev/${process.env.EAS_PROJECT_ID}` },
-        runtimeVersion: { policy: 'appVersion' } as const,
+        // Expo Go only loads updates built for its own SDK runtime.
+        runtimeVersion: { policy: 'sdkVersion' } as const,
       }
     : {}),
   extra: {
