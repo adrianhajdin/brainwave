@@ -17,6 +17,8 @@ export interface CatMapProps {
   zones?: HomeZone[];
   heat?: HeatCell[];
   onSelectCat?: (id: string) => void;
+  /** Tap on the map itself (not on a cat). */
+  onPressMap?: () => void;
   /** Long-press on the map (e.g. to place a home zone). */
   onLongPress?: (lat: number, lng: number) => void;
   /** Pending zone preview while editing. */

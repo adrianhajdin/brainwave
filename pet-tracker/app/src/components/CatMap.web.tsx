@@ -26,7 +26,7 @@ function RadarCat({ cat, x, y, onPress }: { cat: Cat; x: number; y: number; onPr
 }
 
 export function CatMap({
-  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, coverBottom = 0, style,
+  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, onPressMap, draftZone, coverBottom = 0, style,
 }: CatMapProps) {
   const t = useTheme();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -83,6 +83,7 @@ export function CatMap({
       {view && scale > 0 && (
         <Pressable
           style={StyleSheet.absoluteFill}
+          onPress={onPressMap}
           onLongPress={onLongPress ? (e) => {
             const p = unproject(e.nativeEvent.locationX, e.nativeEvent.locationY);
             onLongPress(p.lat, p.lng);

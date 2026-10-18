@@ -12,6 +12,7 @@ import {
   type CatEvent,
   type HeatCell,
   type HomeZone,
+  type ZoneTarget,
   type CatSitter,
   type Household,
   type InviteResult,
@@ -44,7 +45,7 @@ export class DemoBackend implements Backend {
 
   #cats = new Map<string, Cat>();
   #tracks = new Map<string, TrackPoint[]>();
-  #zones = new Map<string, HomeZone[]>(); // key: catId or '*' for all cats
+  #zones = new Map<string, HomeZone[]>(); // key: catId, or `hh:<householdId>` for a household's zones
   #zoneState = new Map<string, boolean>(); // `${catId}:${zoneId}`
   #events: CatEvent[] = [];
   #sim = new Map<string, SimState>();
@@ -118,7 +119,8 @@ export class DemoBackend implements Backend {
   }
 
   #zonesFor(catId: string): HomeZone[] {
-    return [...(this.#zones.get('*') ?? []), ...(this.#zones.get(catId) ?? [])];
+    const household = this.#cats.get(catId)?.householdId;
+    return [...(household ? this.#zones.get(`hh:${household}`) ?? [] : []), ...(this.#zones.get(catId) ?? [])];
   }
 
   #record(cat: Cat, point: TrackPoint) {
@@ -279,12 +281,20 @@ export class DemoBackend implements Backend {
     return this.#zonesFor(catId);
   }
 
-  async addZone(catId: string | null, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
-    const key = catId ?? '*';
-    const zone: HomeZone = { id: newId('zone'), name: name.trim() || 'Home', lat, lng, radiusM, allCats: catId === null };
+  async getHouseholdZones(householdId: string): Promise<HomeZone[]> {
+    return this.#zones.get(`hh:${householdId}`) ?? [];
+  }
+
+  async addZone(target: ZoneTarget, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
+    const householdId = 'householdId' in target ? target.householdId : null;
+    const key = householdId ? `hh:${householdId}` : (target as { catId: string }).catId;
+    const zone: HomeZone = {
+      id: newId('zone'), name: name.trim() || 'Home', lat, lng, radiusM, allCats: householdId !== null,
+      householdId, householdName: householdId ? this.#households.get(householdId)?.name ?? null : null,
+    };
     this.#zones.set(key, [...(this.#zones.get(key) ?? []), zone]);
     // Start from each cat's current side of the fence so the first exit alerts.
-    const cats = catId ? [this.#cat(catId)] : [...this.#cats.values()];
+    const cats = [...this.#cats.values()].filter((c) => (householdId ? c.householdId === householdId : c.id === key));
     for (const cat of cats) {
       if (cat.lastLat != null && cat.lastLng != null) {
         this.#zoneState.set(`${cat.id}:${zone.id}`, insideZone(zone, { lat: cat.lastLat, lng: cat.lastLng, accuracyM: cat.lastAccuracyM ?? 0 }, null));
@@ -320,6 +330,7 @@ export class DemoBackend implements Backend {
     const h = this.#households.get(householdId);
     if (!h) return;
     h.name = name.trim() || h.name;
+    for (const zone of this.#zones.get(`hh:${householdId}`) ?? []) zone.householdName = h.name;
     for (const cat of this.#cats.values()) {
       if (cat.householdId === householdId) {
         cat.householdName = h.name;
@@ -329,6 +340,7 @@ export class DemoBackend implements Backend {
   }
   async deleteHousehold(householdId: string): Promise<void> {
     this.#households.delete(householdId);
+    this.#zones.delete(`hh:${householdId}`);
     for (const cat of this.#cats.values()) {
       if (cat.householdId === householdId) await this.setCatHousehold(cat.id, null);
     }

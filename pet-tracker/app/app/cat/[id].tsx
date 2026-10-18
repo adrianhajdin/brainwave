@@ -19,7 +19,8 @@ import type { MapLayer } from '../../src/components/CatMap.types';
 import { HEAT_LEGEND } from '../../src/components/heat';
 import { Scrubber } from '../../src/components/Scrubber';
 import { TrackerBanner } from '../../src/components/TrackerBanner';
-import { Button, Card, ErrorText, IconButton, Pill, SectionTitle, Segmented } from '../../src/components/ui';
+import { Button, Card, CatAvatar, ErrorText, IconButton, Pill, SectionTitle, Segmented } from '../../src/components/ui';
+import { usePhotoUrl } from '../../src/components/usePhotoUrl';
 import { ask, messageOf } from '../../src/dialogs';
 import { distanceM, formatDistance, inNightWindow, isLive, relativeTime } from '../../src/geo';
 import { fmtDuration, shortDate } from '../../src/time';
@@ -61,6 +62,7 @@ export default function CatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { backend, cats, trackedCatId, setTrackedCatId, tracker, effectiveIntervalS, alert, refresh } = useApp();
   const cat = cats.find((c) => c.id === id);
+  const photoUrl = usePhotoUrl(cat?.photoPath);
 
   const [layer, setLayer] = useState<MapLayer>('live');
   const [tab, setTab] = useState<Tab>('activity');
@@ -317,13 +319,6 @@ export default function CatScreen() {
         options={{
           title: cat.name,
           headerShown: !immersive,
-          headerRight: owner
-            ? () => (
-                <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${cat.name}`} onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })} hitSlop={12}>
-                  <Text style={{ color: t.accent, fontFamily: fonts.bodySemibold }}>Edit</Text>
-                </Pressable>
-              )
-            : undefined,
         }}
       />
 
@@ -377,18 +372,35 @@ export default function CatScreen() {
           <TrackerBanner />
           <ErrorText>{errors.load}</ErrorText>
 
-          <View style={{ gap: space.xs }}>
+          {/* Who this is (photo, name) and how they're doing, with Edit right here. */}
+          <View style={{ gap: space.sm }}>
+            <View style={styles.hero}>
+              <CatAvatar name={cat.name} color={cat.color} size={72} photoUrl={photoUrl} ring={cat.lostMode ? t.danger : undefined} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.heroName, { color: t.text }]} numberOfLines={1}>{cat.name}</Text>
+                <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
+              </View>
+              {owner && (
+                <Button
+                  title="Edit"
+                  icon="create-outline"
+                  variant="secondary"
+                  style={styles.editBtn}
+                  onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })}
+                />
+              )}
+            </View>
             <View style={styles.pillRow}>
               <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
               <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
               <AccessPill cat={cat} own />
               {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
             </View>
-            <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
             <Text style={{ color: lowBattery ? t.warn : t.textMuted, lineHeight: 20 }}>
               {[
                 cat.lastAccuracyM !== null ? `GPS accuracy about ${Math.round(cat.lastAccuracyM)} m` : null,
                 cat.lastBatteryPct ? (lowBattery ? `Battery low: ${cat.lastBatteryPct}%` : `Battery ${cat.lastBatteryPct}%`) : null,
+                !owner && cat.access === 'household' ? `Only the owner can edit ${cat.name}` : null,
               ]
                 .filter(Boolean)
                 .join(' · ') || ' '}
@@ -468,15 +480,29 @@ export default function CatScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>{z.name}</Text>
                       <Text style={{ color: t.textMuted, fontSize: 13 }}>
-                        {formatDistance(z.radiusM)} radius{z.allCats ? ' · all cats' : ''}
+                        {formatDistance(z.radiusM)} radius · {z.householdName ? `${z.householdName}, all its cats` : z.allCats ? 'all your cats' : `only ${cat.name}`}
                         {inside !== null ? ` · ${cat.name} is ${inside ? 'inside' : 'outside'}` : ''}
                       </Text>
                     </View>
-                    {owner && <Button title="Delete" variant="ghost" busy={busy === 'zones'} onPress={() => void removeZone(z)} />}
+                    {(z.householdId ? cat.access !== 'sitter' : owner) && (
+                      <Button title="Delete" variant="ghost" busy={busy === 'zones'} onPress={() => void removeZone(z)} />
+                    )}
                   </View>
                 );
               })}
-              {owner && <Button title="Add a zone" icon="add" variant="secondary" onPress={() => router.push({ pathname: '/zone/[catId]', params: { catId: cat.id } })} />}
+              {(owner || cat.access === 'household') && (
+                <Button
+                  title={cat.householdId && cat.access !== 'sitter' ? `Add a zone for ${cat.householdName ?? 'the household'}` : 'Add a zone'}
+                  icon="add"
+                  variant="secondary"
+                  onPress={() => router.push({ pathname: '/zone/new', params: { catId: cat.id } })}
+                />
+              )}
+              {cat.householdId && cat.access !== 'sitter' && (
+                <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>
+                  A household's zones work for every cat in it. You can also manage them in Settings → Households.
+                </Text>
+              )}
               <ErrorText>{errors.zones}</ErrorText>
             </Card>
           )}
@@ -500,20 +526,7 @@ export default function CatScreen() {
             </Card>
           )}
 
-          {owner ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push({ pathname: '/edit-cat/[id]', params: { id: cat.id } })}
-              style={({ pressed }) => [styles.editRow, { backgroundColor: t.surface, opacity: pressed ? 0.85 : 1 }]}
-            >
-              <Ionicons name="options-outline" size={22} color={t.text} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>Edit {cat.name}</Text>
-                <Text style={{ color: t.textMuted, fontSize: 13 }}>Photo, name, colour and night watch</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
-            </Pressable>
-          ) : cat.access === 'sitter' ? (
+          {cat.access === 'sitter' && (
             <Card style={{ gap: space.sm }}>
               <SectionTitle>Cat sitting</SectionTitle>
               <Text style={{ color: t.textMuted, lineHeight: 20 }}>
@@ -525,10 +538,6 @@ export default function CatScreen() {
               <ErrorText>{errors.sitting}</ErrorText>
               <Button title={`Stop looking after ${cat.name}`} variant="ghost" textColor={t.danger} busy={busy === 'sitting'} onPress={() => void stopSitting()} />
             </Card>
-          ) : (
-            <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>
-              {cat.name} is in {cat.householdName ?? 'a household you are in'}. Only the owner can edit {cat.name}.
-            </Text>
           )}
         </ScrollView>
       )}
@@ -564,11 +573,13 @@ const styles = StyleSheet.create({
   rankTop: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   barTrack: { height: 4, borderRadius: 2 },
   pillRow: { flexDirection: 'row', gap: space.xs, alignItems: 'center', flexWrap: 'wrap' },
-  big: { fontSize: 32, fontFamily: fonts.display, letterSpacing: -0.6, marginTop: space.xs },
+  big: { fontSize: 30, fontFamily: fonts.display, letterSpacing: -0.6 },
   lostTitle: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   lostRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   lostPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space.md, paddingVertical: 10, borderRadius: radius.pill },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  editRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.lg, borderRadius: radius.lg },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  heroName: { fontSize: 17, fontFamily: fonts.bodySemibold },
+  editBtn: { minHeight: 40, paddingHorizontal: space.md },
 });

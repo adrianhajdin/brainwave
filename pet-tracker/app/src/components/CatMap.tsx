@@ -47,12 +47,25 @@ const alphaHex = (a: number) => Math.round(Math.min(1, Math.max(0, a)) * 255).to
 function CatMarker({ cat, onPress }: { cat: Cat; onPress?: () => void }) {
   const t = useTheme();
   const photoUrl = usePhotoUrl(cat.photoPath);
+  const badge = catBadge(cat, t);
+  // A custom marker is a snapshot of its view (Android): keep updating it
+  // until the photo has loaded, then stop so the map stays smooth.
+  const [redraw, setRedraw] = useState(true);
+  const look = `${photoUrl ?? ''}|${cat.lostMode}|${badge?.icon ?? ''}|${cat.color}|${cat.name}`;
+  useEffect(() => {
+    setRedraw(true);
+    if (photoUrl) return undefined; // waits for onPhotoLoad
+    const timer = setTimeout(() => setRedraw(false), 600);
+    return () => clearTimeout(timer);
+  }, [look, photoUrl]);
   return (
     <Marker
       coordinate={{ latitude: cat.lastLat!, longitude: cat.lastLng! }}
       anchor={{ x: 0.5, y: 0.6 }}
       onPress={onPress}
-      title={cat.name}
+      // Our own card shows on press; the default bubble only without one.
+      title={onPress ? undefined : cat.name}
+      tracksViewChanges={redraw}
     >
       <CatAvatar
         name={cat.name}
@@ -60,14 +73,15 @@ function CatMarker({ cat, onPress }: { cat: Cat; onPress?: () => void }) {
         size={36}
         ring={cat.lostMode ? t.danger : '#ffffff'}
         photoUrl={photoUrl}
-        badge={catBadge(cat, t)}
+        badge={badge}
+        onPhotoLoad={() => setTimeout(() => setRedraw(false), 400)}
       />
     </Marker>
   );
 }
 
 export function CatMap({
-  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, coverBottom = 0, style,
+  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, onPressMap, draftZone, coverBottom = 0, style,
 }: CatMapProps) {
   const t = useTheme();
   const ref = useRef<MapView>(null);
@@ -187,6 +201,7 @@ export function CatMap({
         userInterfaceStyle={t.isDark ? 'dark' : 'light'}
         customMapStyle={t.isDark ? DARK_STYLE : []}
         onLongPress={onLongPress ? (e) => onLongPress(e.nativeEvent.coordinate.latitude, e.nativeEvent.coordinate.longitude) : undefined}
+        onPress={onPressMap ? (e) => e.nativeEvent.action !== 'marker-press' && onPressMap() : undefined}
       >
         {blobs.map((b) => (
           <Circle key={`h${b.key}`} center={{ latitude: b.lat, longitude: b.lng }} radius={b.radiusM} strokeColor="transparent" fillColor={b.fill} />

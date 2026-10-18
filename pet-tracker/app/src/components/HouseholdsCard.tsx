@@ -1,15 +1,17 @@
 /**
- * Households in Settings: every household you are in, its people and cats,
- * inviting (admins), renaming, leaving, creating a new one, and joining with
- * a code (a household code or a cat-sitter code).
+ * Households in Settings: every household you are in, its people, cats and
+ * home zones, inviting (admins), renaming, leaving, creating a new one, and
+ * joining with a code (a household code or a cat-sitter code).
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useApp } from '../AppProvider';
-import type { Household, HouseholdMember } from '../backend/types';
+import type { HomeZone, Household, HouseholdMember } from '../backend/types';
 import { ask, messageOf } from '../dialogs';
+import { formatDistance } from '../geo';
 import { fonts, radius, space, useTheme } from '../theme';
 import { Button, Card, ErrorText, Pill, SectionTitle } from './ui';
 
@@ -17,8 +19,10 @@ export const prettyCode = (code: string) => `${code.slice(0, 4)}-${code.slice(4)
 
 export function HouseholdsCard() {
   const t = useTheme();
+  const router = useRouter();
   const { backend, refresh } = useApp();
   const [households, setHouseholds] = useState<Household[]>([]);
+  const [zones, setZones] = useState<Record<string, HomeZone[]>>({});
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [newName, setNewName] = useState('');
@@ -27,12 +31,19 @@ export function HouseholdsCard() {
   const [message, setMessage] = useState<{ text: string; tone: 'error' | 'info' } | null>(null);
 
   const load = useCallback(async () => {
-    if (backend) setHouseholds(await backend.listHouseholds().catch(() => []));
+    if (!backend) return;
+    const list = await backend.listHouseholds().catch(() => []);
+    setHouseholds(list);
+    const pairs = await Promise.all(list.map(async (h) => [h.id, await backend.getHouseholdZones(h.id).catch(() => [])] as const));
+    setZones(Object.fromEntries(pairs));
   }, [backend]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  // Also when coming back from adding a zone.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   if (!backend) return null;
   const demo = backend.mode === 'demo';
@@ -61,6 +72,11 @@ export function HouseholdsCard() {
   const removeMember = async (h: Household, m: HouseholdMember) => {
     if (!(await ask(`Remove ${m.email}?`, `They will no longer see the cats in ${h.name}. Their own cats leave the household with them.`, 'Remove', true))) return;
     await run(`rm-${h.id}-${m.userId}`, () => backend.removeMember(h.id, m.userId));
+  };
+
+  const removeZone = async (h: Household, z: HomeZone) => {
+    if (!(await ask(`Delete ${z.name}?`, `Alerts for ${z.name} stop for every cat in ${h.name}.`, 'Delete zone', true))) return;
+    await run(`zone-${z.id}`, () => backend.removeZone(z.id));
   };
 
   const leave = async (h: Household) => {
@@ -139,6 +155,29 @@ export function HouseholdsCard() {
                 )}
               </View>
             ))}
+
+            <Text style={[styles.label, { color: t.textMuted }]}>Home zones</Text>
+            {(zones[h.id] ?? []).length === 0 && (
+              <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>
+                No zones yet. Set where home is once, and every cat in {h.name} gets "left home" and "back home" alerts.
+              </Text>
+            )}
+            {(zones[h.id] ?? []).map((z) => (
+              <View key={z.id} style={styles.row}>
+                <Ionicons name="location-outline" size={20} color={t.live} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }} numberOfLines={1}>{z.name}</Text>
+                  <Text style={{ color: t.textMuted, fontSize: 13 }}>{formatDistance(z.radiusM)} radius · all cats</Text>
+                </View>
+                <Button title="Delete" variant="ghost" busy={busy === `zone-${z.id}`} onPress={() => void removeZone(h, z)} />
+              </View>
+            ))}
+            <Button
+              title={(zones[h.id] ?? []).length ? 'Add a zone' : 'Set home'}
+              icon="home-outline"
+              variant="secondary"
+              onPress={() => router.push({ pathname: '/zone/new', params: { householdId: h.id } })}
+            />
 
             {code && (
               <View style={[styles.codeBox, { backgroundColor: t.surface }]}>

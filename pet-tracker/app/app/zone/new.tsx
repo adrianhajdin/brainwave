@@ -1,13 +1,14 @@
 /**
- * New home zone: name, size and centre (the cat, this phone, or long-press on
- * the map). A zone can apply to one cat or to all of the owner's cats.
+ * New home zone: name, size and centre (a cat, this phone, or long-press on
+ * the map). A zone belongs to a household (every cat in it, whoever owns the
+ * cat) or to one cat. Opened from a cat (?catId=) or a household (?householdId=).
  * Layout follows the "Clean Signal" design (09-new-zone).
  */
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { useApp } from '../../src/AppProvider';
 import { CatMap } from '../../src/components/CatMap';
@@ -37,22 +38,38 @@ export default function NewZone() {
   const t = useTheme();
   const router = useRouter();
   const { height } = useWindowDimensions();
-  const { catId } = useLocalSearchParams<{ catId: string }>();
+  const params = useLocalSearchParams<{ catId?: string; householdId?: string }>();
   const { backend, cats } = useApp();
-  const cat = cats.find((c) => c.id === catId);
+  const cat = cats.find((c) => c.id === params.catId);
+  // The household this zone can be for: the one asked for, or the cat's (not for cat sitters).
+  const householdId = params.householdId ?? (cat && cat.access !== 'sitter' ? cat.householdId : null);
+  const [householdName, setHouseholdName] = useState<string | null>(cat?.householdName ?? null);
+  const canCatZone = cat !== undefined && cat.access === 'owner';
 
   const [name, setName] = useState('Home');
   const [radiusM, setRadiusM] = useState<number>(25);
-  const [allCats, setAllCats] = useState(false);
+  const [scope, setScope] = useState<'household' | 'cat'>(householdId ? 'household' : 'cat');
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!center && cat?.lastLat != null && cat.lastLng != null) setCenter({ lat: cat.lastLat, lng: cat.lastLng });
-  }, [cat, center]);
+  const householdCats = householdId ? cats.filter((c) => c.householdId === householdId) : [];
+  const shownCats = scope === 'household' && householdCats.length > 0 ? householdCats : cat ? [cat] : [];
+  // Start at the cat (or the household's first cat with a position).
+  const anchor = [cat, ...householdCats].find((c) => c?.lastLat != null && c.lastLng != null);
 
-  if (!backend || !cat) return null;
+  useEffect(() => {
+    if (!center && anchor) setCenter({ lat: anchor.lastLat!, lng: anchor.lastLng! });
+  }, [anchor, center]);
+
+  useEffect(() => {
+    if (!householdName && householdId && backend) {
+      void backend.listHouseholds().then((hs) => setHouseholdName(hs.find((h) => h.id === householdId)?.name ?? null)).catch(() => undefined);
+    }
+  }, [backend, householdId, householdName]);
+
+  if (!backend || (!cat && !householdId) || (!householdId && !canCatZone)) return null;
+  const forName = scope === 'household' ? householdName ?? 'the household' : cat?.name ?? '';
 
   const cancel = <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={10}><Text style={{ color: t.text, fontSize: 16 }}>Cancel</Text></Pressable>;
 
@@ -69,7 +86,10 @@ export default function NewZone() {
     setBusy(true);
     setError(null);
     try {
-      await backend.addZone(allCats ? null : cat.id, name, center.lat, center.lng, radiusM);
+      await backend.addZone(
+        scope === 'household' && householdId ? { householdId } : { catId: cat!.id },
+        name, center.lat, center.lng, radiusM,
+      );
       router.back();
     } catch (e) {
       setError(messageOf(e));
@@ -79,16 +99,16 @@ export default function NewZone() {
   };
 
   const hint = !center ? 'Set the centre first: use "At my position" or long-press the map.' : !name.trim() ? 'Give the zone a name.' : null;
-  const centreIsCat = center !== null && cat.lastLat === center.lat && cat.lastLng === center.lng;
+  const centreIsCat = center !== null && anchor !== undefined && anchor.lastLat === center.lat && anchor.lastLng === center.lng;
 
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: 'New zone', headerLeft: () => cancel }} />
+      <Stack.Screen options={{ title: scope === 'household' ? `Zone for ${forName}` : 'New zone', headerLeft: () => cancel }} />
 
       <View style={[styles.mapWrap, { height: Math.min(330, Math.round(height * 0.36)) }]}>
         <CatMap
-          cats={[cat]}
-          focusId={cat.id}
+          cats={shownCats}
+          focusId={scope === 'cat' ? cat?.id : undefined}
           draftZone={center ? { ...center, radiusM } : null}
           onLongPress={(lat, lng) => setCenter({ lat, lng })}
           style={StyleSheet.absoluteFill}
@@ -103,16 +123,17 @@ export default function NewZone() {
         <View style={styles.field}>
           <Text style={[styles.label, { color: t.textMuted }]}>Centre</Text>
           <View style={styles.centreRow}>
-            <Pressable
-              accessibilityRole="radio"
-              accessibilityState={{ selected: centreIsCat }}
-              disabled={cat.lastLat == null}
-              onPress={() => cat.lastLat != null && cat.lastLng != null && setCenter({ lat: cat.lastLat, lng: cat.lastLng })}
-              style={[styles.centreBtn, { borderColor: centreIsCat ? t.text : t.surfaceAlt, backgroundColor: centreIsCat ? t.surface : t.surfaceAlt, opacity: cat.lastLat == null ? 0.45 : 1 }]}
-            >
-              <View style={[styles.swatch, { backgroundColor: cat.color }]} />
-              <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }}>At {cat.name}</Text>
-            </Pressable>
+            {anchor && (
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ selected: centreIsCat }}
+                onPress={() => setCenter({ lat: anchor.lastLat!, lng: anchor.lastLng! })}
+                style={[styles.centreBtn, { borderColor: centreIsCat ? t.text : t.surfaceAlt, backgroundColor: centreIsCat ? t.surface : t.surfaceAlt }]}
+              >
+                <View style={[styles.swatch, { backgroundColor: anchor.color }]} />
+                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold }} numberOfLines={1}>At {anchor.name}</Text>
+              </Pressable>
+            )}
             <Pressable
               accessibilityRole="button"
               onPress={() => void useMyLocation()}
@@ -176,19 +197,30 @@ export default function NewZone() {
           </View>
           {radiusM < SMALL_ZONE_M && (
             <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>
-              GPS is often 10–30 m off indoors. You still only get a "left" alert once {cat.name} is clearly outside, but
-              the app may briefly show {cat.name} as outside while in the house.
+              GPS is often 10–30 m off indoors. You still only get a "left" alert once a cat is clearly outside, but
+              the app may briefly show it as outside while in the house.
             </Text>
           )}
         </View>
 
-        <View style={styles.switchRow}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 15 }}>Applies to all your cats</Text>
-            <Text style={{ color: t.textMuted, fontSize: 13 }}>Including cats you add later.</Text>
+        {householdId && canCatZone && (
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: t.textMuted }]}>Applies to</Text>
+            <Segmented<'household' | 'cat'>
+              options={[
+                { value: 'household', label: householdName ?? 'Household' },
+                { value: 'cat', label: `Only ${cat!.name}` },
+              ]}
+              value={scope}
+              onChange={setScope}
+            />
           </View>
-          <Switch value={allCats} onValueChange={setAllCats} trackColor={{ true: t.primary, false: t.surfaceAlt }} thumbColor="#FFFFFF" accessibilityLabel="Applies to all your cats" />
-        </View>
+        )}
+        <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>
+          {scope === 'household'
+            ? `Every cat in ${forName} uses this zone, also cats added later, and everyone in ${forName} gets its alerts.`
+            : `Only ${forName} uses this zone.`}
+        </Text>
       </View>
 
       <ErrorText>{error}</ErrorText>
@@ -214,6 +246,5 @@ const styles = StyleSheet.create({
   input: { height: 48, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 14, fontSize: 17, fontFamily: fonts.body },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center' },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 });

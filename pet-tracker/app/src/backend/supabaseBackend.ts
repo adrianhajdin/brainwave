@@ -16,6 +16,7 @@ import type {
   CatSitter,
   HeatCell,
   HomeZone,
+  ZoneTarget,
   Household,
   HouseholdRole,
   InviteResult,
@@ -70,6 +71,22 @@ async function readLocalFile(uri: string): Promise<ArrayBuffer> {
   return new File(uri).arrayBuffer();
 }
 const SIGNED_URL_TTL_S = 3600;
+
+interface ZoneRow {
+  id: string;
+  name: string;
+  center_lat: number;
+  center_lng: number;
+  radius_m: number;
+  all_cats: boolean;
+  household_id: string | null;
+  household_name: string | null;
+}
+
+const toZone = (r: ZoneRow): HomeZone => ({
+  id: r.id, name: r.name, lat: r.center_lat, lng: r.center_lng, radiusM: r.radius_m, allCats: r.all_cats,
+  householdId: r.household_id ?? null, householdName: r.household_name ?? null,
+});
 
 function toCat(r: DeviceRow, info: AccessInfo): Cat {
   return {
@@ -293,20 +310,26 @@ export class SupabaseBackend implements Backend {
   async getZones(catId: string): Promise<HomeZone[]> {
     const { data, error } = await this.#db.rpc('get_pet_geofences', { p_device_id: catId });
     fail(error);
-    return (data as Array<{ id: string; name: string; center_lat: number; center_lng: number; radius_m: number; all_cats: boolean }>).map(
-      (r) => ({ id: r.id, name: r.name, lat: r.center_lat, lng: r.center_lng, radiusM: r.radius_m, allCats: r.all_cats }),
-    );
+    return (data as ZoneRow[]).map(toZone);
   }
 
-  async addZone(catId: string | null, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
+  async getHouseholdZones(householdId: string): Promise<HomeZone[]> {
+    const { data, error } = await this.#db.rpc('get_household_zones', { p_household_id: householdId });
+    fail(error);
+    return (data as ZoneRow[]).map(toZone);
+  }
+
+  async addZone(target: ZoneTarget, name: string, lat: number, lng: number, radiusM: number): Promise<void> {
     const { error } = await this.#db.rpc('create_circle_geofence', {
-      p_device_id: catId, p_name: name.trim() || 'Home', p_lat: lat, p_lng: lng, p_radius_m: radiusM, p_alert_on_enter: true,
+      p_device_id: 'catId' in target ? target.catId : null,
+      p_household_id: 'householdId' in target ? target.householdId : null,
+      p_name: name.trim() || 'Home', p_lat: lat, p_lng: lng, p_radius_m: radiusM, p_alert_on_enter: true,
     });
     fail(error);
   }
 
   async removeZone(zoneId: string): Promise<void> {
-    const { error } = await this.#db.from('geofences').delete().eq('id', zoneId);
+    const { error } = await this.#db.rpc('delete_zone', { p_zone_id: zoneId });
     fail(error);
   }
 

@@ -10,10 +10,13 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWind
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '../src/AppProvider';
+import type { Cat } from '../src/backend/types';
+import { AccessPill } from '../src/components/AccessPill';
 import { CatMap } from '../src/components/CatMap';
 import { CatRow } from '../src/components/CatRow';
 import { TrackerBanner } from '../src/components/TrackerBanner';
-import { Button, Pill } from '../src/components/ui';
+import { Button, CatAvatar, Pill } from '../src/components/ui';
+import { catBadge, usePhotoUrl } from '../src/components/usePhotoUrl';
 import { isLive, relativeTime } from '../src/geo';
 import { fonts, radius, space, useTheme } from '../src/theme';
 
@@ -36,6 +39,8 @@ export default function Home() {
   const { height } = useWindowDimensions();
   const now = useNow(15_000);
   const { ready, backend, cats, alert, dismissAlert, trackedCatId, tracker, openCatRequest, clearOpenCatRequest, lastSyncAt, syncFailed } = useApp();
+  // Cat tapped on the map: zoom to it and show its card.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Tapped a push notification -> open that cat.
   useEffect(() => {
@@ -63,6 +68,7 @@ export default function Home() {
   const alertCat = alert ? cats.find((c) => c.id === alert.catId) : undefined;
   const lost = cats.filter((c) => c.lostMode);
   const open = (id: string) => router.push({ pathname: '/cat/[id]', params: { id } });
+  const selected = selectedId ? cats.find((c) => c.id === selectedId && c.lastLat !== null) : undefined;
   const liveCount = cats.filter((c) => isLive(c.lastFixAt, 20 * 60, now)).length;
 
   const syncLine =
@@ -87,7 +93,19 @@ export default function Home() {
         }}
       />
 
-      <CatMap cats={cats} style={styles.map} onSelectCat={open} />
+      <View style={styles.map}>
+        <CatMap
+          cats={cats}
+          style={StyleSheet.absoluteFill}
+          focusId={selected?.id}
+          onSelectCat={(catId) => setSelectedId((cur) => (cur === catId ? null : catId))}
+          onPressMap={() => setSelectedId(null)}
+          coverBottom={selected ? SELECTED_CARD_PX : 0}
+        />
+        {selected && (
+          <SelectedCat cat={selected} now={now} onOpen={() => open(selected.id)} onClose={() => setSelectedId(null)} />
+        )}
+      </View>
 
       <View style={styles.overlays} pointerEvents="box-none">
         {cats.length > 0 && (
@@ -177,6 +195,37 @@ export default function Home() {
   );
 }
 
+/** Height the selected-cat card takes from the bottom of the map. */
+const SELECTED_CARD_PX = 120;
+
+/** Card for the cat tapped on the map: photo, name and status; tap to open. */
+function SelectedCat({ cat, now, onOpen, onClose }: { cat: Cat; now: number; onOpen: () => void; onClose: () => void }) {
+  const t = useTheme();
+  const photoUrl = usePhotoUrl(cat.photoPath);
+  const live = isLive(cat.lastFixAt, 20 * 60, now);
+  return (
+    <View style={[styles.selected, { backgroundColor: t.surface }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Open ${cat.name}`} onPress={onOpen} style={styles.selectedMain}>
+        <CatAvatar name={cat.name} color={cat.color} size={64} photoUrl={photoUrl} ring={cat.lostMode ? t.danger : undefined} badge={catBadge(cat, t)} />
+        <View style={{ flex: 1, gap: 4 }}>
+          <Text style={[styles.selectedName, { color: t.text }]} numberOfLines={1}>{cat.name}</Text>
+          <Text style={{ color: live ? t.live : t.textMuted, fontFamily: fonts.bodyMedium }} numberOfLines={1}>
+            {cat.lostMode ? 'Lost mode · ' : ''}{live ? 'Live' : 'Last seen'} · {relativeTime(cat.lastFixAt, now)}
+            {cat.lastBatteryPct ? ` · ${cat.lastBatteryPct}%` : ''}
+          </Text>
+          <View style={{ flexDirection: 'row' }}>
+            <AccessPill cat={cat} own />
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={t.textMuted} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={10} style={styles.selectedClose}>
+        <Ionicons name="close" size={18} color={t.textMuted} />
+      </Pressable>
+    </View>
+  );
+}
+
 /** Shown instead of an empty list: the three steps to a working tracker. */
 function FirstRun({ onAdd, onJoin }: { onAdd: () => void; onJoin: () => void }) {
   const t = useTheme();
@@ -208,6 +257,13 @@ function FirstRun({ onAdd, onJoin }: { onAdd: () => void; onJoin: () => void }) 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   map: { flex: 1 },
+  selected: {
+    position: 'absolute', left: space.lg, right: space.lg, bottom: radius.sheet + space.md,
+    borderRadius: radius.lg, shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 16, elevation: 6,
+  },
+  selectedMain: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, paddingRight: space.lg },
+  selectedName: { fontFamily: fonts.display, fontSize: 20 },
+  selectedClose: { position: 'absolute', top: 8, right: 8 },
   overlays: { position: 'absolute', top: space.md, left: space.lg, right: space.lg, gap: space.sm },
   sheet: {
     borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, marginTop: -radius.sheet,

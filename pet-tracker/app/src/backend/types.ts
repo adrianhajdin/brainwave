@@ -57,9 +57,15 @@ export interface HomeZone {
   lat: number;
   lng: number;
   radiusM: number;
-  /** Zone applies to every cat of the household. */
+  /** Zone applies to several cats: its household's, or (older zones) all of the owner's. */
   allCats: boolean;
+  /** Set for a household's zone: it applies to every cat in that household. */
+  householdId: string | null;
+  householdName: string | null;
 }
+
+/** Where a new zone applies: one cat, or every cat in a household. */
+export type ZoneTarget = { catId: string } | { householdId: string };
 
 export interface CatEvent {
   id: string;
@@ -163,8 +169,9 @@ export interface Backend {
   getActivity(catId: string, days: number): Promise<ActivityDay[]>;
 
   getZones(catId: string): Promise<HomeZone[]>;
-  /** catId = null: zone for all cats of the household. */
-  addZone(catId: string | null, name: string, lat: number, lng: number, radiusM: number): Promise<void>;
+  getHouseholdZones(householdId: string): Promise<HomeZone[]>;
+  addZone(target: ZoneTarget, name: string, lat: number, lng: number, radiusM: number): Promise<void>;
+  /** Your own zones, or any zone of a household you are in. */
   removeZone(zoneId: string): Promise<void>;
   getEvents(catId: string): Promise<CatEvent[]>;
 

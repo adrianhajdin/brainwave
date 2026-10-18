@@ -18,4 +18,8 @@ psql -q -v ON_ERROR_STOP=1 -d "$DB" -f cats_test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f household_test.sql
 # Households v2 migrates the data the tests above leave behind.
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f ../supabase/migrations/20261018000500_households_and_sitters.sql
+# Household zones migrate the "all my cats" zones the household tests leave.
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f ../supabase/migrations/20261018000600_household_zones.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f zones_migration_test.sql
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f sharing_test.sql
+psql -q -v ON_ERROR_STOP=1 -d "$DB" -f zones_test.sql
