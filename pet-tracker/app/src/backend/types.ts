@@ -10,6 +10,9 @@
 
 export type TrackerKind = 'collar' | 'phone';
 
+/** How the signed-in person can see a cat. */
+export type CatAccess = 'owner' | 'household' | 'sitter';
+
 export interface NightWatch {
   enabled: boolean;
   startMin: number; // local minutes after midnight, e.g. 21:00 = 1260
@@ -32,6 +35,12 @@ export interface Cat {
   lostModeSince: string | null;
   night: NightWatch;
   photoPath: string | null;
+  /** Household the cat belongs to (null: private to its owner). */
+  householdId: string | null;
+  householdName: string | null;
+  access: CatAccess;
+  /** For a cat sitter: when access ends (null: until the owner stops it). */
+  sitterUntil: string | null;
 }
 
 export interface TrackPoint {
@@ -76,11 +85,35 @@ export interface ActivityDay {
   fixes: number;
 }
 
-export interface HouseholdPerson {
+export type HouseholdRole = 'admin' | 'member';
+
+export interface HouseholdMember {
   userId: string;
   email: string;
-  /** 'member' = someone in my household; 'owner' = a household I joined */
-  role: 'member' | 'owner';
+  role: HouseholdRole;
+}
+
+/** A group of people who all see the cats in it (e.g. "Home"). */
+export interface Household {
+  id: string;
+  name: string;
+  myRole: HouseholdRole;
+  members: HouseholdMember[];
+  catCount: number;
+}
+
+/** Someone following one cat without being in its household. */
+export interface CatSitter {
+  userId: string;
+  email: string;
+  /** ISO; null = until the owner stops it */
+  until: string | null;
+}
+
+export interface InviteResult {
+  kind: 'household' | 'sitter';
+  /** Household name, or the cat's name for a sitter invite. */
+  name: string;
 }
 
 export interface PhoneFix {
@@ -135,12 +168,25 @@ export interface Backend {
   removeZone(zoneId: string): Promise<void>;
   getEvents(catId: string): Promise<CatEvent[]>;
 
-  // Household sharing
-  createInvite(): Promise<string>;
-  acceptInvite(code: string): Promise<void>;
-  listHousehold(): Promise<HouseholdPerson[]>;
-  removeMember(userId: string): Promise<void>;
-  leaveHousehold(ownerId: string): Promise<void>;
+  // Households: several per person; each cat is in one or private.
+  listHouseholds(): Promise<Household[]>;
+  createHousehold(name: string): Promise<string>;
+  renameHousehold(householdId: string, name: string): Promise<void>;
+  deleteHousehold(householdId: string): Promise<void>;
+  createHouseholdInvite(householdId: string): Promise<string>;
+  removeMember(householdId: string, userId: string): Promise<void>;
+  leaveHousehold(householdId: string): Promise<void>;
+  /** householdId null: the cat becomes private. Owner only. */
+  setCatHousehold(catId: string, householdId: string | null): Promise<void>;
+
+  // Cat sitters: follow one cat, optionally until a date.
+  createSitterInvite(catId: string, untilIso: string | null): Promise<string>;
+  listCatSitters(catId: string): Promise<CatSitter[]>;
+  /** The owner removes a sitter, or a sitter (userId = self) stops. */
+  removeCatSitter(catId: string, userId: string): Promise<void>;
+
+  /** Accepts a household or a cat-sitter code. */
+  acceptInvite(code: string): Promise<InviteResult>;
 
   // Notifications + account
   registerPushToken(token: string, platform: 'ios' | 'android' | 'web'): Promise<void>;

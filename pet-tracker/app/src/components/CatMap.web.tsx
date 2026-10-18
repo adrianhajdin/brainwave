@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { Cat } from '../backend/types';
-import { formatDistance, smoothTrack } from '../geo';
+import { distanceM, formatDistance, smoothTrack } from '../geo';
 import { useTheme } from '../theme';
 import type { CatMapProps } from './CatMap.types';
 import { heatBlobs } from './heat';
@@ -36,12 +36,13 @@ export function CatMap({
   const blobs = useMemo(() => heatBlobs(heat ?? []), [heat]);
 
   const view = useMemo(() => {
-    const pts = [
-      ...(focus ? [focus] : placed).map((c) => ({ lat: c.lastLat!, lng: c.lastLng! })),
-      ...smooth,
-      ...(heat ?? []).slice(0, 60),
-    ];
-    for (const z of [...(zones ?? []), ...(draftZone ? [{ ...draftZone }] : [])]) {
+    const data = [...smooth, ...(heat ?? []).slice(0, 60)];
+    const pts = [...(focus ? [focus] : placed).map((c) => ({ lat: c.lastLat!, lng: c.lastLng! })), ...data];
+    // Live view of one cat: keep it close, with only the zones around it.
+    const framed = focus && data.length === 0
+      ? (zones ?? []).filter((z) => distanceM(z.lat, z.lng, focus.lastLat!, focus.lastLng!) < 400)
+      : zones ?? [];
+    for (const z of [...framed, ...(draftZone ? [{ ...draftZone }] : [])]) {
       const dLat = z.radiusM / 111_320;
       pts.push({ lat: z.lat + dLat, lng: z.lng }, { lat: z.lat - dLat, lng: z.lng });
     }

@@ -41,7 +41,11 @@ const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 
 async function deliver(row: OutboxRow): Promise<{ sent: number; error?: string }> {
-  const { data: recipients, error } = await db.rpc("push_recipients", { p_owner_id: row.owner_id });
+  // Owner, everyone in the cat's household and its current cat sitters.
+  const { data: recipients, error } = await db.rpc("push_recipients", {
+    p_owner_id: row.owner_id,
+    p_device_id: row.device_id,
+  });
   if (error) return { sent: 0, error: error.message };
 
   const tokens = [...new Set((recipients as Array<{ token: string }>).map((r) => r.token))];

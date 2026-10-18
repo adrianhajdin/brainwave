@@ -60,6 +60,52 @@ export function formatDistance(m: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Map framing
+// ---------------------------------------------------------------------------
+
+export interface MapRegion {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
+/** About 450 m top to bottom: a cat with its garden and the street around it. */
+export const CLOSE_DELTA = 0.004;
+
+/**
+ * The map region that shows every point (and every circle around a point) with
+ * a margin, but never zooms in closer than `minDelta`. Spans are square in
+ * metres, so a single cat is centred at street level instead of maximum zoom.
+ */
+export function regionFor(
+  points: readonly (LatLng & { radiusM?: number })[],
+  minDelta = CLOSE_DELTA,
+  margin = 1.5,
+): MapRegion | null {
+  if (points.length === 0) return null;
+  let south = Infinity, north = -Infinity, west = Infinity, east = -Infinity;
+  for (const p of points) {
+    const dLat = (p.radiusM ?? 0) / 111_320;
+    const dLng = dLat / Math.max(0.01, Math.cos((p.lat * Math.PI) / 180));
+    south = Math.min(south, p.lat - dLat);
+    north = Math.max(north, p.lat + dLat);
+    west = Math.min(west, p.lng - dLng);
+    east = Math.max(east, p.lng + dLng);
+  }
+  const latitude = (south + north) / 2;
+  const k = Math.max(0.01, Math.cos((latitude * Math.PI) / 180));
+  // Make the box square in metres, then add the margin.
+  const spanDeg = Math.max(minDelta, (north - south) * margin, (east - west) * k * margin);
+  return {
+    latitude,
+    longitude: (west + east) / 2,
+    latitudeDelta: Math.min(spanDeg, 170),
+    longitudeDelta: Math.min(spanDeg / k, 360),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Route smoothing
 // ---------------------------------------------------------------------------
 

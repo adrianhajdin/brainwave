@@ -29,3 +29,10 @@ export function dateAtMinute(min: number): Date {
   d.setHours(Math.floor(min / 60), min % 60, 0, 0);
   return d;
 }
+
+/** "12 Nov" (same year) or "12 Nov 2027", for end dates. */
+export function shortDate(iso: string): string {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+}

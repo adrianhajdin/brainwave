@@ -4,10 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Cat } from '../backend/types';
 import { isLive, relativeTime } from '../geo';
 import { fonts, space, useTheme } from '../theme';
+import { AccessPill } from './AccessPill';
 import { CatAvatar, Pill } from './ui';
 import { catBadge, usePhotoUrl } from './usePhotoUrl';
 
-export function CatRow({ cat, trackedByPhone, shared, onPress }: { cat: Cat; trackedByPhone: boolean; shared: boolean; onPress: () => void }) {
+export function CatRow({ cat, trackedByPhone, onPress }: { cat: Cat; trackedByPhone: boolean; onPress: () => void }) {
   const t = useTheme();
   const photoUrl = usePhotoUrl(cat.photoPath);
   const live = isLive(cat.lastFixAt, trackedByPhone || cat.lostMode ? 5 * 60 : 20 * 60);
@@ -30,7 +31,7 @@ export function CatRow({ cat, trackedByPhone, shared, onPress }: { cat: Cat; tra
           </Text>
           {cat.lostMode && <Pill label="Lost" tone="danger" icon="alert-circle" />}
           {trackedByPhone && <Pill label="This phone" tone="accent" icon="phone-portrait-outline" />}
-          {shared && <Pill label="Shared" />}
+          <AccessPill cat={cat} />
           {cat.night.enabled && <Pill label="Night watch" tone="night" icon="moon-outline" />}
         </View>
         <Text style={{ color: t.textMuted, marginTop: 2 }}>

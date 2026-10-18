@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { distanceM, formatDistance, insideZone, isLive, offset, relativeTime } from './geo.ts';
+import { CLOSE_DELTA, distanceM, formatDistance, insideZone, isLive, offset, regionFor, relativeTime } from './geo.ts';
 
 test('distance: Amsterdam Centraal to Dam is ~1 km', () => {
   const d = distanceM(52.3791, 4.9003, 52.3731, 4.8926);
@@ -101,4 +101,28 @@ test('activity level relative to the cat itself', () => {
   assert.equal(activityLevel(550, [500, 600]).label, 'Usual rounds');
   assert.equal(activityLevel(2000, [500, 600]).label, 'Explorer mode');
   assert.equal(activityLevel(200, [500, 600]).label, 'Taking it easy');
+});
+
+test('map region: one cat is centred at street level, not maximum zoom', () => {
+  const r = regionFor([{ lat: 52.37, lng: 4.9 }])!;
+  assert.equal(r.latitude, 52.37);
+  assert.equal(r.longitude, 4.9);
+  assert.equal(r.latitudeDelta, CLOSE_DELTA);
+  assert.ok(r.longitudeDelta > CLOSE_DELTA, 'longitude span is widened so the view is square in metres');
+});
+
+test('map region: cats far apart all fit, with a margin', () => {
+  const a = { lat: 52.37, lng: 4.9 };
+  const b = offset(a.lat, a.lng, 3000, 45);
+  const r = regionFor([a, b])!;
+  for (const p of [a, b]) {
+    assert.ok(Math.abs(p.lat - r.latitude) < r.latitudeDelta / 2 * 0.8);
+    assert.ok(Math.abs(p.lng - r.longitude) < r.longitudeDelta / 2 * 0.8);
+  }
+  assert.equal(regionFor([]), null);
+});
+
+test('map region: a zone circle stays fully in view', () => {
+  const r = regionFor([{ lat: 52.37, lng: 4.9, radiusM: 250 }])!;
+  assert.ok(r.latitudeDelta * 111_320 > 500 * 1.4);
 });

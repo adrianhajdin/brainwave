@@ -1,6 +1,6 @@
 /**
  * New home zone: name, size and centre (the cat, this phone, or long-press on
- * the map). A zone can apply to one cat or to every cat in the household.
+ * the map). A zone can apply to one cat or to all of the owner's cats.
  * Layout follows the "Clean Signal" design (09-new-zone).
  */
 import { Ionicons } from '@expo/vector-icons';
@@ -184,10 +184,10 @@ export default function NewZone() {
 
         <View style={styles.switchRow}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 15 }}>Applies to all cats</Text>
+            <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 15 }}>Applies to all your cats</Text>
             <Text style={{ color: t.textMuted, fontSize: 13 }}>Including cats you add later.</Text>
           </View>
-          <Switch value={allCats} onValueChange={setAllCats} trackColor={{ true: t.primary, false: t.surfaceAlt }} thumbColor="#FFFFFF" accessibilityLabel="Applies to all cats" />
+          <Switch value={allCats} onValueChange={setAllCats} trackColor={{ true: t.primary, false: t.surfaceAlt }} thumbColor="#FFFFFF" accessibilityLabel="Applies to all your cats" />
         </View>
       </View>
 

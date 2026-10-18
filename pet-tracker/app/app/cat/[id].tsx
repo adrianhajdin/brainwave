@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '../../src/AppProvider';
 import { isOwner, type ActivityDay, type CatEvent, type HeatCell, type HomeZone, type TrackPoint } from '../../src/backend/types';
+import { AccessPill } from '../../src/components/AccessPill';
 import { ActivityCard } from '../../src/components/ActivityCard';
 import { CatMap } from '../../src/components/CatMap';
 import type { MapLayer } from '../../src/components/CatMap.types';
@@ -21,7 +22,7 @@ import { TrackerBanner } from '../../src/components/TrackerBanner';
 import { Button, Card, ErrorText, IconButton, Pill, SectionTitle, Segmented } from '../../src/components/ui';
 import { ask, messageOf } from '../../src/dialogs';
 import { distanceM, formatDistance, inNightWindow, isLive, relativeTime } from '../../src/geo';
-import { fmtDuration } from '../../src/time';
+import { fmtDuration, shortDate } from '../../src/time';
 import { fonts, radius, space, useTheme } from '../../src/theme';
 
 const ROUTE_RANGES = [
@@ -44,7 +45,7 @@ const TABS = [
 
 type Tab = (typeof TABS)[number]['value'];
 /** Sections that can show an error next to the control that failed. */
-type Section = 'load' | 'lost' | 'tracker' | 'zones';
+type Section = 'load' | 'lost' | 'tracker' | 'zones' | 'sitting';
 
 const LAYERS = [
   { value: 'live', label: 'Live' },
@@ -58,7 +59,7 @@ export default function CatScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { backend, cats, trackedCatId, setTrackedCatId, tracker, effectiveIntervalS, alert } = useApp();
+  const { backend, cats, trackedCatId, setTrackedCatId, tracker, effectiveIntervalS, alert, refresh } = useApp();
   const cat = cats.find((c) => c.id === id);
 
   const [layer, setLayer] = useState<MapLayer>('live');
@@ -165,10 +166,19 @@ export default function CatScreen() {
     }
   };
 
+  const stopSitting = async () => {
+    if (!(await ask(`Stop looking after ${cat.name}?`, `${cat.name} disappears from your list. The owner can invite you again.`, 'Stop', true))) return;
+    await run('sitting', async () => {
+      await backend.removeCatSitter(cat.id, backend.userId);
+      await refresh();
+      router.replace('/');
+    });
+  };
+
   const toggleLost = async () => {
     if (cat.lostMode) {
       void run('lost', () => backend.setLostMode(cat.id, false));
-    } else if (await ask(`Is ${cat.name} lost?`, 'Lost mode makes the tracker report as often as possible and alerts everyone in your household. It uses more battery.', 'Turn on lost mode')) {
+    } else if (await ask(`Is ${cat.name} lost?`, `Lost mode makes the tracker report as often as possible and alerts everyone who sees ${cat.name}. It uses more battery.`, 'Turn on lost mode')) {
       void run('lost', () => backend.setLostMode(cat.id, true));
     }
   };
@@ -179,7 +189,7 @@ export default function CatScreen() {
     } else if (
       await ask(
         'Use this phone as the tracker?',
-        `Its location is shared with everyone in your household as ${cat.name}'s position. Only do this with a phone whose owner knows and agrees. Next, your phone asks for location access. "Allow all the time" keeps tracking with the screen off.`,
+        `Its location is shared with everyone who sees ${cat.name} as ${cat.name}'s position. Only do this with a phone whose owner knows and agrees. Next, your phone asks for location access. "Allow all the time" keeps tracking with the screen off.`,
         'Use this phone',
       )
     ) {
@@ -370,7 +380,7 @@ export default function CatScreen() {
             <View style={styles.pillRow}>
               <Pill label={live ? 'Live' : 'Offline'} tone={live ? 'live' : 'neutral'} />
               <Pill label={cat.kind === 'phone' ? 'Phone tracker' : 'GPS collar'} icon={cat.kind === 'phone' ? 'phone-portrait-outline' : 'radio-outline'} />
-              {!owner && <Pill label="Shared with you" />}
+              <AccessPill cat={cat} own />
               {nightNow && <Pill label="Night watch" tone="night" icon="moon-outline" />}
             </View>
             <Text style={[styles.big, { color: t.text }]}>{cat.lastFixAt ? relativeTime(cat.lastFixAt) : 'No location yet'}</Text>
@@ -394,7 +404,7 @@ export default function CatScreen() {
                 </View>
                 <Text style={{ color: t.text, lineHeight: 20 }}>
                   Since {cat.lostModeSince ? relativeTime(cat.lostModeSince) : 'just now'}.{' '}
-                  {cat.kind === 'phone' ? 'The tracking phone reports every 15 s.' : 'The collar reports every minute.'} Everyone in the household was notified.
+                  {cat.kind === 'phone' ? 'The tracking phone reports every 15 s.' : 'The collar reports every minute.'} Everyone who sees {cat.name} was notified.
                 </Text>
                 <Button title={`${cat.name} is found · turn off`} variant="secondary" busy={busy === 'lost'} onPress={() => void toggleLost()} />
               </>
@@ -402,7 +412,7 @@ export default function CatScreen() {
               <View style={styles.lostRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 16 }}>Can't find {cat.name}?</Text>
-                  <Text style={{ color: t.textMuted, lineHeight: 20, marginTop: 2 }}>Lost mode reports more often and alerts your household.</Text>
+                  <Text style={{ color: t.textMuted, lineHeight: 20, marginTop: 2 }}>Lost mode reports more often and alerts everyone who sees {cat.name}.</Text>
                 </View>
                 <Pressable
                   accessibilityRole="button"
@@ -502,8 +512,22 @@ export default function CatScreen() {
               </View>
               <Ionicons name="chevron-forward" size={18} color={t.textMuted} />
             </Pressable>
+          ) : cat.access === 'sitter' ? (
+            <Card style={{ gap: space.sm }}>
+              <SectionTitle>Cat sitting</SectionTitle>
+              <Text style={{ color: t.textMuted, lineHeight: 20 }}>
+                {cat.sitterUntil
+                  ? `You're looking after ${cat.name} until ${shortDate(cat.sitterUntil)}. After that ${cat.name} disappears from your list.`
+                  : `You're looking after ${cat.name} until the owner stops it.`}{' '}
+                You see where {cat.name} is, get the same alerts and can switch lost mode on.
+              </Text>
+              <ErrorText>{errors.sitting}</ErrorText>
+              <Button title={`Stop looking after ${cat.name}`} variant="ghost" textColor={t.danger} busy={busy === 'sitting'} onPress={() => void stopSitting()} />
+            </Card>
           ) : (
-            <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>{cat.name} is shared with you by your household.</Text>
+            <Text style={{ color: t.textMuted, textAlign: 'center', lineHeight: 20 }}>
+              {cat.name} is in {cat.householdName ?? 'a household you are in'}. Only the owner can edit {cat.name}.
+            </Text>
           )}
         </ScrollView>
       )}

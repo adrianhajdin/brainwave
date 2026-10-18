@@ -12,7 +12,9 @@ import {
   type CatEvent,
   type HeatCell,
   type HomeZone,
-  type HouseholdPerson,
+  type CatSitter,
+  type Household,
+  type InviteResult,
   type LiveHandlers,
   type NightWatch,
   type PhoneFix,
@@ -24,6 +26,8 @@ const DEFAULT_CENTER = { lat: 52.3676, lng: 4.9041 }; // Amsterdam, until the ph
 const SIM_TICK_MS = 4000;
 const MAX_TRACK = 4000;
 const DEMO_USER = 'demo-user';
+const DEMO_HOUSEHOLD = 'demo-household';
+const NEEDS_ACCOUNT = 'Sharing needs an account. Exit the demo and sign in to invite people.';
 
 let nextId = 1;
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${(nextId++).toString(36)}`;
@@ -48,6 +52,8 @@ export class DemoBackend implements Backend {
   #timer: ReturnType<typeof setInterval> | null = null;
   #center = { ...DEFAULT_CENTER };
   #centered = false;
+  /** In-memory households, so moving cats around can be tried without an account. */
+  #households = new Map<string, { id: string; name: string }>([[DEMO_HOUSEHOLD, { id: DEMO_HOUSEHOLD, name: 'Demo household' }]]);
 
   constructor() {
     this.#seed('Tijger', '#6366F1', 180, 40);
@@ -60,6 +66,7 @@ export class DemoBackend implements Backend {
       name, color, kind, ownerId: DEMO_USER,
       lastLat: null, lastLng: null, lastAccuracyM: null, lastBatteryPct: null, lastFixAt: null,
       lostMode: false, lostModeSince: null, night: { ...DEFAULT_NIGHT }, photoPath: null,
+      householdId: DEMO_HOUSEHOLD, householdName: 'Demo household', access: 'owner', sitterUntil: null,
     };
   }
 
@@ -295,17 +302,61 @@ export class DemoBackend implements Backend {
     return this.#events.filter((e) => e.catId === catId).slice(0, 50);
   }
 
-  async createInvite(): Promise<string> {
-    throw new Error('Sharing needs an account. Sign in with the real backend to invite your household.');
+  async listHouseholds(): Promise<Household[]> {
+    return [...this.#households.values()].map((h) => ({
+      id: h.id,
+      name: h.name,
+      myRole: 'admin',
+      members: [{ userId: DEMO_USER, email: 'demo@cat-tracker.app', role: 'admin' }],
+      catCount: [...this.#cats.values()].filter((c) => c.householdId === h.id).length,
+    }));
   }
-  async acceptInvite(): Promise<void> {
-    throw new Error('Sharing needs an account.');
+  async createHousehold(name: string): Promise<string> {
+    const id = newId('hh');
+    this.#households.set(id, { id, name: name.trim() || 'Household' });
+    return id;
   }
-  async listHousehold(): Promise<HouseholdPerson[]> {
-    return [];
+  async renameHousehold(householdId: string, name: string): Promise<void> {
+    const h = this.#households.get(householdId);
+    if (!h) return;
+    h.name = name.trim() || h.name;
+    for (const cat of this.#cats.values()) {
+      if (cat.householdId === householdId) {
+        cat.householdName = h.name;
+        this.#emitCat(cat);
+      }
+    }
+  }
+  async deleteHousehold(householdId: string): Promise<void> {
+    this.#households.delete(householdId);
+    for (const cat of this.#cats.values()) {
+      if (cat.householdId === householdId) await this.setCatHousehold(cat.id, null);
+    }
+  }
+  async createHouseholdInvite(): Promise<string> {
+    throw new Error(NEEDS_ACCOUNT);
   }
   async removeMember(): Promise<void> {}
-  async leaveHousehold(): Promise<void> {}
+  async leaveHousehold(householdId: string): Promise<void> {
+    await this.deleteHousehold(householdId);
+  }
+  async setCatHousehold(catId: string, householdId: string | null): Promise<void> {
+    const cat = this.#cats.get(catId);
+    if (!cat) return;
+    cat.householdId = householdId;
+    cat.householdName = householdId ? this.#households.get(householdId)?.name ?? null : null;
+    this.#emitCat(cat);
+  }
+  async createSitterInvite(): Promise<string> {
+    throw new Error(NEEDS_ACCOUNT);
+  }
+  async listCatSitters(): Promise<CatSitter[]> {
+    return [];
+  }
+  async removeCatSitter(): Promise<void> {}
+  async acceptInvite(): Promise<InviteResult> {
+    throw new Error(NEEDS_ACCOUNT);
+  }
   async registerPushToken(): Promise<void> {}
   async unregisterPushToken(): Promise<void> {}
   async deleteAccount(): Promise<void> {

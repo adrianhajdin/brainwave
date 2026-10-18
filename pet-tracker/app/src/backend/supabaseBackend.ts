@@ -9,10 +9,14 @@ import type {
   ActivityDay,
   Backend,
   Cat,
+  CatAccess,
   CatEvent,
+  CatSitter,
   HeatCell,
   HomeZone,
-  HouseholdPerson,
+  Household,
+  HouseholdRole,
+  InviteResult,
   LiveHandlers,
   NightWatch,
   PhoneFix,
@@ -38,16 +42,24 @@ interface DeviceRow {
   night_end_min: number;
   night_interval_s: number;
   photo_path: string | null;
+  household_id: string | null;
+}
+
+/** How the signed-in person sees a cat (from my_cat_access). */
+interface AccessInfo {
+  access: CatAccess;
+  householdName: string | null;
+  sitterUntil: string | null;
 }
 
 const DEVICE_COLUMNS =
   'id, display_name, color, kind, owner_id, last_lat, last_lng, last_accuracy_m, last_battery_pct, last_fix_at, ' +
-  'lost_mode, lost_mode_since, night_mode, night_start_min, night_end_min, night_interval_s, photo_path';
+  'lost_mode, lost_mode_since, night_mode, night_start_min, night_end_min, night_interval_s, photo_path, household_id';
 
 const PHOTO_BUCKET = 'cat-photos';
 const SIGNED_URL_TTL_S = 3600;
 
-function toCat(r: DeviceRow): Cat {
+function toCat(r: DeviceRow, info: AccessInfo): Cat {
   return {
     id: r.id,
     name: r.display_name ?? 'Unnamed cat',
@@ -68,6 +80,10 @@ function toCat(r: DeviceRow): Cat {
       intervalS: r.night_interval_s ?? 300,
     },
     photoPath: r.photo_path ?? null,
+    householdId: r.household_id ?? null,
+    householdName: info.householdName,
+    access: info.access,
+    sitterUntil: info.sitterUntil,
   };
 }
 
@@ -81,6 +97,8 @@ export class SupabaseBackend implements Backend {
   readonly userLabel: string;
   readonly #db: SupabaseClient;
   readonly #photoUrls = new Map<string, { url: string; expires: number }>();
+  /** Latest my_cat_access result, reused for Realtime updates between refreshes. */
+  readonly #access = new Map<string, AccessInfo>();
 
   constructor(db: SupabaseClient, userId: string, email: string | undefined) {
     this.#db = db;
@@ -89,12 +107,22 @@ export class SupabaseBackend implements Backend {
   }
 
   async listCats(): Promise<Cat[]> {
-    const { data, error } = await this.#db
-      .from('devices')
-      .select(DEVICE_COLUMNS)
-      .order('created_at', { ascending: true });
-    fail(error);
-    return (data as unknown as DeviceRow[]).map(toCat);
+    const [devices, access] = await Promise.all([
+      this.#db.from('devices').select(DEVICE_COLUMNS).order('created_at', { ascending: true }),
+      this.#db.rpc('my_cat_access'),
+    ]);
+    fail(devices.error);
+    fail(access.error);
+    this.#access.clear();
+    for (const a of access.data as Array<{ device_id: string; access: CatAccess; household_name: string | null; sitter_until: string | null }>) {
+      this.#access.set(a.device_id, { access: a.access, householdName: a.household_name, sitterUntil: a.sitter_until });
+    }
+    return (devices.data as unknown as DeviceRow[]).map((r) => this.#toCat(r));
+  }
+
+  #toCat(r: DeviceRow): Cat {
+    const known = this.#access.get(r.id);
+    return toCat(r, known ?? { access: r.owner_id === this.userId ? 'owner' : 'household', householdName: null, sitterUntil: null });
   }
 
   subscribe(handlers: LiveHandlers): () => void {
@@ -112,7 +140,7 @@ export class SupabaseBackend implements Backend {
           handlers.onCatRemoved?.(row.id);
           return;
         }
-        handlers.onCat(toCat(row));
+        handlers.onCat(this.#toCat(row));
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'geofence_events' }, async (payload) => {
         const ev = payload.new as { id: number; device_id: string; geofence_id: string; transition: 'enter' | 'exit'; occurred_at: string; notify: boolean };
@@ -282,35 +310,88 @@ export class SupabaseBackend implements Backend {
     );
   }
 
-  async createInvite(): Promise<string> {
-    const { data, error } = await this.#db.rpc('create_household_invite');
+  async listHouseholds(): Promise<Household[]> {
+    const { data, error } = await this.#db.rpc('list_households');
+    fail(error);
+    type Row = {
+      household_id: string;
+      name: string;
+      my_role: HouseholdRole;
+      members: Array<{ user_id: string; email: string; role: HouseholdRole }>;
+      cat_count: number;
+    };
+    return (data as Row[]).map((r) => ({
+      id: r.household_id,
+      name: r.name,
+      myRole: r.my_role,
+      members: r.members.map((m) => ({ userId: m.user_id, email: m.email, role: m.role })),
+      catCount: r.cat_count,
+    }));
+  }
+
+  async createHousehold(name: string): Promise<string> {
+    const { data, error } = await this.#db.rpc('create_household', { p_name: name });
     fail(error);
     return data as string;
   }
 
-  async acceptInvite(code: string): Promise<void> {
-    const { error } = await this.#db.rpc('accept_household_invite', { p_code: code });
+  async renameHousehold(householdId: string, name: string): Promise<void> {
+    const { error } = await this.#db.rpc('rename_household', { p_household_id: householdId, p_name: name });
     fail(error);
   }
 
-  async listHousehold(): Promise<HouseholdPerson[]> {
-    const { data, error } = await this.#db.rpc('list_household');
+  async deleteHousehold(householdId: string): Promise<void> {
+    const { error } = await this.#db.rpc('delete_household', { p_household_id: householdId });
     fail(error);
-    return (data as Array<{ owner_id: string; member_id: string; email: string; role: 'owner' | 'member' }>).map((r) => ({
-      userId: r.role === 'owner' ? r.owner_id : r.member_id,
+  }
+
+  async createHouseholdInvite(householdId: string): Promise<string> {
+    const { data, error } = await this.#db.rpc('create_household_invite', { p_household_id: householdId });
+    fail(error);
+    return data as string;
+  }
+
+  async removeMember(householdId: string, userId: string): Promise<void> {
+    const { error } = await this.#db.rpc('remove_household_member', { p_household_id: householdId, p_user_id: userId });
+    fail(error);
+  }
+
+  async leaveHousehold(householdId: string): Promise<void> {
+    const { error } = await this.#db.rpc('leave_household', { p_household_id: householdId });
+    fail(error);
+  }
+
+  async setCatHousehold(catId: string, householdId: string | null): Promise<void> {
+    const { error } = await this.#db.rpc('set_cat_household', { p_device_id: catId, p_household_id: householdId });
+    fail(error);
+  }
+
+  async createSitterInvite(catId: string, untilIso: string | null): Promise<string> {
+    const { data, error } = await this.#db.rpc('create_sitter_invite', { p_device_id: catId, p_until: untilIso });
+    fail(error);
+    return data as string;
+  }
+
+  async listCatSitters(catId: string): Promise<CatSitter[]> {
+    const { data, error } = await this.#db.rpc('list_cat_sitters', { p_device_id: catId });
+    fail(error);
+    return (data as Array<{ user_id: string; email: string; until: string | null }>).map((r) => ({
+      userId: r.user_id,
       email: r.email,
-      role: r.role,
+      until: r.until,
     }));
   }
 
-  async removeMember(userId: string): Promise<void> {
-    const { error } = await this.#db.rpc('remove_household_member', { p_member_id: userId });
+  async removeCatSitter(catId: string, userId: string): Promise<void> {
+    const { error } = await this.#db.rpc('remove_cat_sitter', { p_device_id: catId, p_user_id: userId });
     fail(error);
   }
 
-  async leaveHousehold(ownerId: string): Promise<void> {
-    const { error } = await this.#db.rpc('leave_household', { p_owner_id: ownerId });
+  async acceptInvite(code: string): Promise<InviteResult> {
+    const { data, error } = await this.#db.rpc('accept_invite', { p_code: code });
     fail(error);
+    const r = data as { kind: 'household' | 'sitter'; name: string };
+    return { kind: r.kind, name: r.name };
   }
 
   async registerPushToken(token: string, platform: 'ios' | 'android' | 'web'): Promise<void> {

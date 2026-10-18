@@ -165,7 +165,6 @@ export default function Home() {
             <CatRow
               cat={item}
               trackedByPhone={item.id === trackedCatId}
-              shared={item.ownerId !== null && item.ownerId !== backend.userId}
               onPress={() => open(item.id)}
             />
           )}
@@ -184,7 +183,7 @@ function FirstRun({ onAdd, onJoin }: { onAdd: () => void; onJoin: () => void }) 
   const steps: [string, string][] = [
     ['Add your cat', 'Give it a name and a colour. A photo can come later.'],
     ['Choose its tracker', 'Use this phone for a quick test, or pair a GPS collar with the code on its label.'],
-    ['Invite your household', 'Create an invite code in Settings so others can see and help find your cats.'],
+    ['Share with your household', 'In Settings, invite people to your household, or invite a cat sitter from a cat\'s edit screen.'],
   ];
   return (
     <View style={styles.firstRun}>

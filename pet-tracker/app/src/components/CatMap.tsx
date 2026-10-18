@@ -5,19 +5,24 @@
  * Layers: home zones, heatmap glow, smoothed route with a soft halo, accuracy
  * halos, cat markers (photo + lost/battery badge) and the replay cursor.
  */
-import { Fragment, useEffect, useMemo, useRef } from 'react';
+import * as Location from 'expo-location';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Circle, Marker, Polyline } from 'react-native-maps';
+import MapView, { Circle, Marker, Polyline, type Region } from 'react-native-maps';
 
 import type { Cat } from '../backend/types';
-import { smoothTrack } from '../geo';
+import { distanceM, regionFor, smoothTrack, type LatLng } from '../geo';
 import { useTheme } from '../theme';
 import type { CatMapProps } from './CatMap.types';
 import { heatBlobs } from './heat';
 import { CatAvatar } from './ui';
 import { catBadge, usePhotoUrl } from './usePhotoUrl';
 
-const AMSTERDAM = { latitude: 52.3676, longitude: 4.9041, latitudeDelta: 0.05, longitudeDelta: 0.05 };
+/** Before we know where any cat (or this phone) is: the whole of the Netherlands. */
+const FALLBACK: Region = { latitude: 52.2, longitude: 5.3, latitudeDelta: 3.2, longitudeDelta: 3.2 };
+
+/** In the live view of one cat, zones this close stay in the frame (the home around the garden). */
+const NEARBY_ZONE_M = 400;
 
 // Google Maps night style (Android); iOS follows userInterfaceStyle.
 const DARK_STYLE = [
@@ -65,25 +70,76 @@ export function CatMap({
   const smooth = useMemo(() => (track && track.length > 1 ? smoothTrack(track) : []), [track]);
   const blobs = useMemo(() => heatBlobs(heat ?? []), [heat]);
 
-  // Re-fit when the set of positioned cats, the focus or the layers change.
-  const fitKey = [focusId ?? '', placed.map((c) => c.id).join(','), track?.length ?? 0, zones?.length ?? 0, heat?.length ?? 0].join('|');
+  // What the camera should show: one cat up close, or everything that is drawn.
+  const frame = (): (LatLng & { radiusM?: number })[] => {
+    const draft = draftZone ? [draftZone] : [];
+    const data = [...smooth, ...(heat ?? []).slice(0, 60)];
+    if (focus && data.length === 0) {
+      const near = (zones ?? []).filter((z) => distanceM(z.lat, z.lng, focus.lastLat!, focus.lastLng!) < NEARBY_ZONE_M);
+      return [{ lat: focus.lastLat!, lng: focus.lastLng! }, ...near, ...draft];
+    }
+    return [
+      ...(focus ? [focus] : placed).map((c) => ({ lat: c.lastLat!, lng: c.lastLng! })),
+      ...data,
+      ...(zones ?? []),
+      ...draft,
+    ];
+  };
+
+  const [initialRegion] = useState<Region>(() => regionFor(frame()) ?? FALLBACK);
+  const [ready, setReady] = useState(false);
+  const shown = useRef<Region>(initialRegion);
+
+  // Re-frame when the map is ready and when the set of positioned cats, the
+  // focus, the layers or the draft zone change. Positions updating on their
+  // own don't re-frame, so the map doesn't jump while someone pans it.
+  const fitKey = [
+    ready,
+    focusId ?? '',
+    placed.map((c) => c.id).join(','),
+    track?.length ?? 0,
+    zones?.length ?? 0,
+    heat?.length ?? 0,
+    draftZone ? `${draftZone.lat},${draftZone.lng},${draftZone.radiusM}` : '',
+  ].join('|');
 
   useEffect(() => {
-    const coords = [
-      ...(focus ? [focus] : placed).map((c) => ({ latitude: c.lastLat!, longitude: c.lastLng! })),
-      ...smooth.map((p) => ({ latitude: p.lat, longitude: p.lng })),
-      ...(heat ?? []).slice(0, 60).map((c) => ({ latitude: c.lat, longitude: c.lng })),
-      ...(zones ?? []).map((z) => ({ latitude: z.lat, longitude: z.lng })),
-    ];
-    if (coords.length === 0) return;
-    if (coords.length === 1) {
-      ref.current?.animateToRegion({ ...coords[0]!, latitudeDelta: 0.006, longitudeDelta: 0.006 }, 400);
-    } else {
-      ref.current?.fitToCoordinates(coords, { edgePadding: { top: 80, right: 60, bottom: 80, left: 60 }, animated: true });
+    if (!ready) return;
+    const region = regionFor(frame());
+    if (region) {
+      ref.current?.animateToRegion(region, 450);
+      return;
     }
-    // fitKey captures everything that should trigger a re-fit
+    // Nothing to show yet: centre on this phone if location is already allowed.
+    let cancelled = false;
+    void (async () => {
+      try {
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (!perm.granted) return;
+        const pos = await Location.getLastKnownPositionAsync();
+        if (pos && !cancelled) {
+          ref.current?.animateToRegion(regionFor([{ lat: pos.coords.latitude, lng: pos.coords.longitude }], 0.02)!, 450);
+        }
+      } catch {
+        // keep the fallback view
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // fitKey captures everything that should trigger a re-frame
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey]);
+
+  // Follow the focused cat when it walks out of view.
+  useEffect(() => {
+    if (!ready || !focus || smooth.length > 0 || heat?.length) return;
+    const r = shown.current;
+    const outside =
+      Math.abs(focus.lastLat! - r.latitude) > r.latitudeDelta * 0.4 || Math.abs(focus.lastLng! - r.longitude) > r.longitudeDelta * 0.4;
+    if (outside) ref.current?.animateCamera({ center: { latitude: focus.lastLat!, longitude: focus.lastLng! } }, { duration: 450 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.lastLat, focus?.lastLng, ready]);
 
   const routeColor = trackColor ?? focus?.color ?? t.accent;
 
@@ -92,7 +148,11 @@ export function CatMap({
       <MapView
         ref={ref}
         style={StyleSheet.absoluteFill}
-        initialRegion={AMSTERDAM}
+        initialRegion={initialRegion}
+        onMapReady={() => setReady(true)}
+        onRegionChangeComplete={(r) => {
+          shown.current = r;
+        }}
         showsCompass={false}
         toolbarEnabled={false}
         showsUserLocation

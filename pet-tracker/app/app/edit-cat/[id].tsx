@@ -1,6 +1,6 @@
 /**
  * Edit a cat: photo, name and colour, night watch, the phone tracker's report
- * interval, and deleting the cat. Only the owner can open this screen.
+ * interval, who sees it (household, cat sitters), and deleting the cat. Only the owner can open this screen.
  * Layout follows the "Clean Signal" design (08-edit-cat).
  */
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 
 import { REPORT_INTERVALS, useApp } from '../../src/AppProvider';
 import { CAT_COLORS, isOwner, type NightWatch } from '../../src/backend/types';
+import { CatSharingCard } from '../../src/components/CatSharingCard';
 import { Button, CatAvatar, ErrorText, Segmented } from '../../src/components/ui';
 import { TimeField } from '../../src/components/TimeField';
 import { usePhotoUrl } from '../../src/components/usePhotoUrl';
@@ -98,7 +99,7 @@ export default function EditCat() {
   const deleteCat = async () => {
     const yes = await ask(
       `Delete ${cat.name}?`,
-      'Its location history, zones and alerts are deleted for everyone in your household. This cannot be undone.',
+      'Its location history, zones and alerts are deleted for everyone who sees it. This cannot be undone.',
       'Delete',
       true,
     );
@@ -144,7 +145,7 @@ export default function EditCat() {
         </View>
         {cat.photoPath && <Button title="Remove photo" variant="ghost" onPress={() => void run('photo', () => backend.removePhoto(cat.id))} />}
         <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-          Photos are resized and visible to everyone in your household.
+          Photos are resized and visible to everyone who sees this cat.
         </Text>
         <ErrorText>{errors.photo}</ErrorText>
       </View>
@@ -263,10 +264,12 @@ export default function EditCat() {
         </View>
       )}
 
+      <CatSharingCard cat={cat} />
+
       <View style={[styles.card, { backgroundColor: t.surface, gap: 12, borderWidth: 1, borderColor: t.dangerSoft }]}>
         <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 16 }}>Delete {cat.name}</Text>
         <Text style={{ color: t.textMuted, lineHeight: 20 }}>
-          Removes {cat.name} with its location history, zones and alerts for everyone in your household. This cannot be undone.
+          Removes {cat.name} with its location history, zones and alerts for everyone who sees it. This cannot be undone.
         </Text>
         <ErrorText>{errors.delete}</ErrorText>
         <Button title={`Delete ${cat.name} and its history`} variant="danger" icon="trash-outline" busy={busy === 'delete'} onPress={() => void deleteCat()} />
