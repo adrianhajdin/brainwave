@@ -1,0 +1,27 @@
+{
+  "sql": "SELECT *, topic(3) AS mqtt_device_id FROM 'pt/v1/+/telemetry'",
+  "awsIotSqlVersion": "2016-03-23",
+  "description": "Push tracker telemetry to the Supabase Edge Function (EU).",
+  "ruleDisabled": false,
+  "actions": [
+    {
+      "http": {
+        "url": "https://PROJECT_REF.supabase.co/functions/v1/telemetry-ingest",
+        "confirmationUrl": "https://PROJECT_REF.supabase.co/functions/v1/telemetry-ingest",
+        "headers": [
+          {
+            "key": "x-pt-ingest-secret",
+            "value": "${get_secret('pt/ingest-shared-secret', 'SecretString', 'secret', 'arn:aws:iam::ACCOUNT_ID:role/pt-iot-rule-get-secret')}"
+          }
+        ]
+      }
+    }
+  ],
+  "errorAction": {
+    "sqs": {
+      "queueUrl": "https://sqs.eu-central-1.amazonaws.com/ACCOUNT_ID/pt-telemetry-dlq",
+      "roleArn": "arn:aws:iam::ACCOUNT_ID:role/pt-iot-rule-dlq",
+      "useBase64": false
+    }
+  }
+}
