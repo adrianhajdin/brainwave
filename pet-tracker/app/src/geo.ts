@@ -119,12 +119,16 @@ interface Fix extends LatLng {
 }
 
 /**
- * Turns raw fixes into a pleasant, honest path:
+ * Turns raw fixes into a calm, honest path:
  *  1. drop clearly bad fixes (accuracy > 75 m) unless that would drop most data;
- *  2. merge GPS jitter: consecutive fixes inside each other's uncertainty
- *     collapse into one accuracy-weighted point (a sleeping cat stays a dot);
- *  3. draw a centripetal Catmull-Rom spline through the remaining points, which
- *     passes through every real fix without overshooting loops.
+ *  2. merge stays: a fix within ~25 m (or the GPS uncertainty) of the current
+ *     spot joins it as an accuracy-weighted average, and a single fix that
+ *     pops out and straight back is ignored, so a cat sitting in the garden
+ *     is one point instead of a zigzag of GPS wander;
+ *  3. drop single-fix spikes (out and straight back again: a GPS jump);
+ *  4. ease the corners a little (1-2-1 average of the interior points);
+ *  5. draw a centripetal Catmull-Rom spline through the result, which never
+ *     overshoots into loops.
  */
 export function smoothTrack(points: readonly Fix[], stepsPerSegment = 8): LatLng[] {
   if (points.length < 2) return points.map(({ lat, lng }) => ({ lat, lng }));
@@ -132,26 +136,44 @@ export function smoothTrack(points: readonly Fix[], stepsPerSegment = 8): LatLng
   const accurate = points.filter((p) => p.accuracyM <= 75);
   const usable = accurate.length >= points.length / 2 ? accurate : [...points];
 
-  const merged: Array<Fix & { w: number }> = [];
-  for (const p of usable) {
-    const last = merged[merged.length - 1];
+  const stays: Array<Fix & { w: number }> = [];
+  const inStay = (s: Fix, p: Fix) => distanceM(s.lat, s.lng, p.lat, p.lng) < Math.max(25, (s.accuracyM + p.accuracyM) * 0.75);
+  for (const [i, p] of usable.entries()) {
+    const last = stays[stays.length - 1];
     const w = 1 / Math.max(p.accuracyM, 3) ** 2;
-    if (last && distanceM(last.lat, last.lng, p.lat, p.lng) < Math.max(10, (last.accuracyM + p.accuracyM) / 2)) {
+    // One fix outside followed by one back inside is GPS wander, not a trip.
+    const next = usable[i + 1];
+    if (last && !inStay(last, p) && next && inStay(last, next)) continue;
+    if (last && inStay(last, p)) {
       const tw = last.w + w;
       last.lat = (last.lat * last.w + p.lat * w) / tw;
       last.lng = (last.lng * last.w + p.lng * w) / tw;
       last.accuracyM = Math.min(last.accuracyM, p.accuracyM);
       last.w = tw;
     } else {
-      merged.push({ ...p, w });
+      stays.push({ ...p, w });
     }
   }
+
+  const merged = stays.filter((b, i) => {
+    const a = stays[i - 1];
+    const c = stays[i + 1];
+    if (!a || !c) return true;
+    const ab = distanceM(a.lat, a.lng, b.lat, b.lng);
+    const bc = distanceM(b.lat, b.lng, c.lat, c.lng);
+    return !(ab > 40 && bc > 40 && distanceM(a.lat, a.lng, c.lat, c.lng) < 0.35 * Math.min(ab, bc));
+  });
   if (merged.length < 3) return merged.map(({ lat, lng }) => ({ lat, lng }));
 
   // Work in local metres so the spline parametrisation is isotropic.
   const lat0 = merged[0]!.lat;
   const k = Math.cos((lat0 * Math.PI) / 180) * 111_320;
-  const xy = merged.map((p) => ({ x: (p.lng - merged[0]!.lng) * k, y: (p.lat - lat0) * 111_320 }));
+  const raw = merged.map((p) => ({ x: (p.lng - merged[0]!.lng) * k, y: (p.lat - lat0) * 111_320 }));
+  const xy = raw.map((p, i) =>
+    i === 0 || i === raw.length - 1
+      ? p
+      : { x: (raw[i - 1]!.x + 2 * p.x + raw[i + 1]!.x) / 4, y: (raw[i - 1]!.y + 2 * p.y + raw[i + 1]!.y) / 4 },
+  );
   const back = (x: number, y: number): LatLng => ({ lat: lat0 + y / 111_320, lng: merged[0]!.lng + x / k });
 
   const out: LatLng[] = [back(xy[0]!.x, xy[0]!.y)];
@@ -179,6 +201,34 @@ export function smoothTrack(points: readonly Fix[], stepsPerSegment = 8): LatLng
       out.push(back(c.x, c.y));
     }
   }
+  return out;
+}
+
+/**
+ * Evenly spaced points along a path (for the dotted route), from the first
+ * point to the last. Spacing grows when needed to stay under `maxPoints`.
+ */
+export function resamplePath(path: readonly LatLng[], spacingM: number, maxPoints = 300): LatLng[] {
+  if (path.length < 2) return path.map(({ lat, lng }) => ({ lat, lng }));
+  const cum = [0];
+  for (let i = 1; i < path.length; i++) {
+    cum.push(cum[i - 1]! + distanceM(path[i - 1]!.lat, path[i - 1]!.lng, path[i]!.lat, path[i]!.lng));
+  }
+  const total = cum[cum.length - 1]!;
+  const step = Math.max(spacingM, total / (maxPoints - 1), 0.5);
+  const out: LatLng[] = [{ lat: path[0]!.lat, lng: path[0]!.lng }];
+  let i = 0;
+  // Stop short of the end so the last two dots don't touch.
+  for (let d = step; d < total - step * 0.4; d += step) {
+    while (i < path.length - 2 && cum[i + 1]! < d) i++;
+    const len = cum[i + 1]! - cum[i]!;
+    const f = len > 0 ? (d - cum[i]!) / len : 0;
+    const a = path[i]!;
+    const b = path[i + 1]!;
+    out.push({ lat: a.lat + (b.lat - a.lat) * f, lng: a.lng + (b.lng - a.lng) * f });
+  }
+  const last = path[path.length - 1]!;
+  out.push({ lat: last.lat, lng: last.lng });
   return out;
 }
 

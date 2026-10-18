@@ -30,35 +30,85 @@ export interface HeatBlob {
   key: string;
 }
 
+interface Spot {
+  lat: number;
+  lng: number;
+  w: number;
+  spreadM: number;
+}
+
+const metres = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const k = Math.cos((a.lat * Math.PI) / 180);
+  return Math.hypot((a.lat - b.lat) * 111_320, (a.lng - b.lng) * 111_320 * k);
+};
+
 /**
- * Each cell becomes a few concentric translucent circles: overlapping blobs
- * blend into a smooth "glow" without a native heatmap layer (which Apple Maps
- * lacks). Intensity uses sqrt so one long nap doesn't wash out the rest.
+ * Groups nearby cells into "spots" (weighted centre, how far it spreads), so
+ * GPS wander around one favourite place becomes one soft area instead of a
+ * crowd of separate circles.
  */
-export function heatBlobs(cells: readonly HeatCell[], cellM = 25): HeatBlob[] {
-  if (cells.length === 0) return [];
-  const max = Math.sqrt(Math.max(...cells.map((c) => c.weightS)));
+export function heatSpots(cells: readonly HeatCell[], joinM = 40, maxSpots = 60): Spot[] {
+  const spots: Spot[] = [];
+  for (const c of [...cells].sort((a, b) => b.weightS - a.weightS)) {
+    const near = spots.find((s) => metres(s, c) < joinM);
+    if (near) {
+      const tw = near.w + c.weightS;
+      near.lat = (near.lat * near.w + c.lat * c.weightS) / tw;
+      near.lng = (near.lng * near.w + c.lng * c.weightS) / tw;
+      near.spreadM = Math.min(joinM, Math.max(near.spreadM, metres(near, c)));
+      near.w = tw;
+    } else if (spots.length < maxSpots) {
+      spots.push({ lat: c.lat, lng: c.lng, w: c.weightS, spreadM: 0 });
+    }
+  }
+  return spots;
+}
+
+const RINGS = 8;
+
+/**
+ * Each spot becomes a stack of faint concentric circles, largest first: their
+ * alphas add up towards the centre, so a spot fades out with no visible edge
+ * and nearby spots melt into one area (Apple Maps has no heatmap layer).
+ * Colour runs from the pale edge to the spot's own heat in the middle;
+ * intensity uses sqrt so one long nap doesn't wash out the rest.
+ */
+export function heatBlobs(cells: readonly HeatCell[]): HeatBlob[] {
+  const spots = heatSpots(cells);
+  if (spots.length === 0) return [];
+  const max = Math.sqrt(Math.max(...spots.map((s) => s.w)));
   const out: HeatBlob[] = [];
-  cells.forEach((c, i) => {
-    const t = max > 0 ? Math.sqrt(c.weightS) / max : 0;
-    const [r, g, b] = rampColor(t);
-    const rings = [
-      { k: 2.2, a: 0.1 + 0.12 * t },
-      { k: 1.4, a: 0.14 + 0.2 * t },
-      { k: 0.8, a: 0.2 + 0.35 * t },
-    ];
-    for (const [j, ring] of rings.entries()) {
+  spots.forEach((s, i) => {
+    const t = max > 0 ? Math.sqrt(s.w) / max : 0;
+    const outer = 30 * (0.8 + 0.7 * t) + s.spreadM;
+    for (let j = 0; j < RINGS; j++) {
+      const f = j / (RINGS - 1); // 0 = outer edge, 1 = core
+      const [r, g, b] = rampColor(t * (0.3 + 0.7 * f));
       out.push({
         key: `${i}-${j}`,
-        lat: c.lat,
-        lng: c.lng,
-        radiusM: cellM * ring.k * (0.7 + 0.6 * t),
-        fill: `rgba(${r}, ${g}, ${b}, ${ring.a.toFixed(3)})`,
+        lat: s.lat,
+        lng: s.lng,
+        radiusM: outer * (1 - 0.7 * f),
+        fill: `rgba(${r}, ${g}, ${b}, ${(0.025 + 0.055 * t).toFixed(3)})`,
       });
     }
   });
   return out;
 }
+
+/** Points for a native heatmap layer (Google Maps on Android). */
+export function heatPoints(cells: readonly HeatCell[]): { latitude: number; longitude: number; weight: number }[] {
+  if (cells.length === 0) return [];
+  const max = Math.sqrt(Math.max(...cells.map((c) => c.weightS)));
+  return cells.map((c) => ({ latitude: c.lat, longitude: c.lng, weight: max > 0 ? Math.sqrt(c.weightS) / max : 0 }));
+}
+
+/** The same warm ramp as a native heatmap gradient; below the first stop it fades out. */
+export const HEAT_GRADIENT = {
+  colors: RAMP.map(([, [r, g, b]]) => `rgb(${r}, ${g}, ${b})`),
+  startPoints: [0.08, 0.35, 0.65, 1],
+  colorMapSize: 256,
+};
 
 export const HEAT_LEGEND = [0, 0.35, 0.65, 1].map((t) => {
   const [r, g, b] = rampColor(t);

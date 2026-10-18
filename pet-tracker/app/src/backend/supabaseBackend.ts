@@ -3,6 +3,8 @@
  * All access is enforced server-side by RLS and the security-definer functions
  * in cloud/supabase/migrations - this client holds only the public key.
  */
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 
 import type {
@@ -57,6 +59,16 @@ const DEVICE_COLUMNS =
   'lost_mode, lost_mode_since, night_mode, night_start_min, night_end_min, night_interval_s, photo_path, household_id';
 
 const PHOTO_BUCKET = 'cat-photos';
+
+/**
+ * Bytes of a local file. On phones this goes through expo-file-system:
+ * fetch() on a file:// URI is not reliable in React Native and can produce an
+ * empty upload, which then shows as a blank avatar.
+ */
+async function readLocalFile(uri: string): Promise<ArrayBuffer> {
+  if (Platform.OS === 'web') return (await fetch(uri)).arrayBuffer();
+  return new File(uri).arrayBuffer();
+}
 const SIGNED_URL_TTL_S = 3600;
 
 function toCat(r: DeviceRow, info: AccessInfo): Cat {
@@ -187,7 +199,8 @@ export class SupabaseBackend implements Backend {
   }
 
   async setPhoto(catId: string, localUri: string): Promise<void> {
-    const body = await (await fetch(localUri)).arrayBuffer();
+    const body = await readLocalFile(localUri);
+    if (body.byteLength === 0) throw new Error('Could not read the photo. Please try again.');
     const path = `${this.userId}/${catId}-${Date.now()}.jpg`;
     const { error } = await this.#db.storage.from(PHOTO_BUCKET).upload(path, body, { contentType: 'image/jpeg', upsert: false });
     fail(error);

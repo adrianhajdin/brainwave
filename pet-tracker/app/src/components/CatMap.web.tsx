@@ -1,14 +1,14 @@
 /**
  * Web preview: react-native-maps has no web implementation, so the browser
  * build shows a dependency-free "radar" (equirectangular projection) with the
- * same layers as the phone map: zones, heatmap glow, smoothed route, accuracy
+ * same layers as the phone map: zones, heatmap glow, dotted route, accuracy
  * halos and cats. Phones get real maps.
  */
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import type { Cat } from '../backend/types';
-import { distanceM, formatDistance, smoothTrack } from '../geo';
+import { distanceM, formatDistance, resamplePath, smoothTrack } from '../geo';
 import { useTheme } from '../theme';
 import type { CatMapProps } from './CatMap.types';
 import { heatBlobs } from './heat';
@@ -26,7 +26,7 @@ function RadarCat({ cat, x, y, onPress }: { cat: Cat; x: number; y: number; onPr
 }
 
 export function CatMap({
-  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, style,
+  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, coverBottom = 0, style,
 }: CatMapProps) {
   const t = useTheme();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -58,13 +58,14 @@ export function CatMap({
   }, [focus, placed, smooth, heat, zones, draftZone]);
 
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
-  const scale = view && size.w ? Math.min(size.w, size.h) / view.spanM : 0; // px per metre
+  const visibleH = Math.max(size.h * 0.3, size.h - coverBottom); // keep the framed area above a covering sheet
+  const scale = view && size.w ? Math.min(size.w, visibleH) / view.spanM : 0; // px per metre
   const project = (lat: number, lng: number) => ({
     x: size.w / 2 + (lng - view!.lng0) * 111_320 * view!.k * scale,
-    y: size.h / 2 - (lat - view!.lat0) * 111_320 * scale,
+    y: visibleH / 2 - (lat - view!.lat0) * 111_320 * scale,
   });
   const unproject = (x: number, y: number) => ({
-    lat: view!.lat0 + (size.h / 2 - y) / scale / 111_320,
+    lat: view!.lat0 + (visibleH / 2 - y) / scale / 111_320,
     lng: view!.lng0 + (x - size.w / 2) / scale / 111_320 / view!.k,
   });
 
@@ -92,7 +93,12 @@ export function CatMap({
           )}
           <Text style={[styles.scale, { color: t.textMuted }]}>rings every {formatDistance(ringStepM)}</Text>
 
-          {blobs.map((b) => circle(`h${b.key}`, b.lat, b.lng, b.radiusM, { backgroundColor: b.fill }))}
+          {blobs.length > 0 && (
+            // The browser can blur the rings into one smooth glow.
+            <View pointerEvents="none" style={[StyleSheet.absoluteFill, { filter: 'blur(8px)' } as object]}>
+              {blobs.map((b) => circle(`h${b.key}`, b.lat, b.lng, b.radiusM, { backgroundColor: b.fill }))}
+            </View>
+          )}
 
           {(zones ?? []).map((z) => (
             <View key={z.id} pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -114,23 +120,25 @@ export function CatMap({
               borderWidth: 2, borderStyle: 'dashed', borderColor: t.accent, backgroundColor: 'rgba(217,119,6,0.12)',
             })}
 
-          {smooth.slice(1).map((p, i) => {
-            const a = project(smooth[i]!.lat, smooth[i]!.lng);
-            const b = project(p.lat, p.lng);
-            const len = Math.hypot(b.x - a.x, b.y - a.y);
-            const angle = Math.atan2(b.y - a.y, b.x - a.x);
-            return (
-              <View
-                key={`seg${i}`}
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: (a.x + b.x) / 2 - len / 2, top: (a.y + b.y) / 2 - 2,
-                  width: len + 1, height: 4, borderRadius: 2, backgroundColor: routeColor,
-                  transform: [{ rotate: `${angle}rad` }],
-                }}
-              />
-            );
-          })}
+          {/* Route: hollow dots 15 px apart, fading in from the oldest */}
+          {(() => {
+            const dots = scale > 0 ? resamplePath(smooth, 15 / scale) : [];
+            return dots.length > 1
+              ? dots.map((p, i) => {
+                  const c = project(p.lat, p.lng);
+                  return (
+                    <View
+                      key={`dot${i}`}
+                      pointerEvents="none"
+                      style={{
+                        position: 'absolute', left: c.x - 5, top: c.y - 5, width: 10, height: 10, borderRadius: 5,
+                        borderWidth: 2.5, borderColor: routeColor, opacity: 0.35 + (0.65 * i) / (dots.length - 1),
+                      }}
+                    />
+                  );
+                })
+              : null;
+          })()}
 
           {placed.map((cat) => {
             const c = project(cat.lastLat!, cat.lastLng!);

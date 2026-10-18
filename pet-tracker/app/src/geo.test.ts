@@ -36,19 +36,57 @@ test('time helpers', () => {
   assert.equal(formatDistance(2345), '2.3 km');
 });
 
-import { activityLevel, binHeatmap, estimateActivity, inNightWindow, smoothTrack } from './geo.ts';
+import { heatBlobs, heatSpots } from './components/heat.ts';
+import { activityLevel, binHeatmap, estimateActivity, inNightWindow, resamplePath, smoothTrack } from './geo.ts';
 
 const fix = (lat: number, lng: number, accuracyM = 8, at = '2026-10-16T12:00:00Z') => ({ lat, lng, accuracyM, at });
 
-test('smoothTrack: curve passes through real fixes and adds intermediate points', () => {
+test('smoothTrack: curve starts and ends at the real fixes and stays close to the others', () => {
   const pts = [fix(52.3700, 4.9000), fix(52.3710, 4.9010), fix(52.3705, 4.9030), fix(52.3720, 4.9040)];
   const out = smoothTrack(pts, 8);
   assert.equal(out.length, 1 + 3 * 8);
-  // segment ends coincide with the original points
-  for (const [i, p] of pts.entries()) {
+  assert.ok(distanceM(pts[0]!.lat, pts[0]!.lng, out[0]!.lat, out[0]!.lng) < 0.5, 'start');
+  assert.ok(distanceM(pts[3]!.lat, pts[3]!.lng, out[24]!.lat, out[24]!.lng) < 0.5, 'end');
+  for (const i of [1, 2]) {
     const q = out[i * 8]!;
-    assert.ok(distanceM(p.lat, p.lng, q.lat, q.lng) < 0.5, `point ${i}`);
+    assert.ok(distanceM(pts[i]!.lat, pts[i]!.lng, q.lat, q.lng) < 60, `point ${i} eased, not moved away`);
   }
+});
+
+test('smoothTrack: wandering GPS while the cat sits in the garden is one spot', () => {
+  // 20 fixes scattered up to ~15 m around the same place, then a walk away.
+  const garden = Array.from({ length: 20 }, (_, i) => fix(52.37 + Math.sin(i * 2.1) * 0.00012, 4.9 + Math.cos(i * 1.7) * 0.0002, 12));
+  const walk = [fix(52.3710, 4.9010), fix(52.3720, 4.9020), fix(52.3730, 4.9030)];
+  const raw = smoothTrack([...garden, ...walk], 1);
+  assert.ok(raw.length <= 5, `got ${raw.length} points`);
+});
+
+test('smoothTrack: a one-fix GPS jump is dropped', () => {
+  const pts = [fix(52.3700, 4.9000), fix(52.3710, 4.9000), fix(52.3740, 4.9060), fix(52.3712, 4.9002), fix(52.3722, 4.9002)];
+  const out = smoothTrack(pts, 1);
+  assert.ok(out.every((p) => p.lat < 52.373), 'spike removed');
+});
+
+test('resamplePath: dots are evenly spaced from start to end', () => {
+  const a = { lat: 52.37, lng: 4.9 };
+  const b = offset(a.lat, a.lng, 100, 90);
+  const dots = resamplePath([a, b], 10);
+  assert.equal(dots.length, 11);
+  for (let i = 1; i < dots.length; i++) {
+    const d = distanceM(dots[i - 1]!.lat, dots[i - 1]!.lng, dots[i]!.lat, dots[i]!.lng);
+    assert.ok(Math.abs(d - 10) < 0.2, `gap ${i}: ${d}`);
+  }
+  assert.ok(resamplePath([a, b], 0.01, 50).length <= 51, 'capped');
+});
+
+test('heatmap spots: wander around one place becomes one soft spot', () => {
+  const cells = Array.from({ length: 10 }, (_, i) => ({ lat: 52.37 + (i % 3) * 0.0001, lng: 4.9 + (i % 4) * 0.0001, weightS: 60 + i }));
+  const far = { lat: 52.38, lng: 4.92, weightS: 30 };
+  const spots = heatSpots([...cells, far]);
+  assert.equal(spots.length, 2);
+  const blobs = heatBlobs([...cells, far]);
+  assert.equal(blobs.length, 16);
+  assert.ok(blobs[0]!.radiusM > blobs[7]!.radiusM, 'largest ring first');
 });
 
 test('smoothTrack: GPS jitter of a sleeping cat collapses to one point', () => {
@@ -125,4 +163,16 @@ test('map region: cats far apart all fit, with a margin', () => {
 test('map region: a zone circle stays fully in view', () => {
   const r = regionFor([{ lat: 52.37, lng: 4.9, radiusM: 250 }])!;
   assert.ok(r.latitudeDelta * 111_320 > 500 * 1.4);
+});
+
+test('photo crop: the circle maps to the right square of the photo', async () => {
+  const { cropGeometry } = await import('./photo/geometry.ts');
+  const g = cropGeometry({ width: 4000, height: 3000 }, 300);
+  // Not zoomed, centred: the middle 3000 × 3000.
+  assert.deepEqual(g.rect(1, 0, 0), { originX: 500, originY: 0, width: 3000, height: 3000 });
+  // Panned fully right (image moves right): we see its left edge.
+  const c = g.clamp(1, 10_000, 0);
+  assert.deepEqual(g.rect(c.zoom, c.tx, c.ty), { originX: 0, originY: 0, width: 3000, height: 3000 });
+  // Zoom 2 in the middle: a 1500 square around the centre.
+  assert.deepEqual(g.rect(2, 0, 0), { originX: 1250, originY: 750, width: 1500, height: 1500 });
 });

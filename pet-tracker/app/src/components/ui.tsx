@@ -8,7 +8,7 @@ import { fonts, radius, space, useTheme } from '../theme';
 export type IconName = keyof typeof Ionicons.glyphMap;
 
 export function CatAvatar({
-  name, color, size = 40, ring, photoUrl, badge,
+  name, color, size = 40, ring, photoUrl, photo, badge,
 }: {
   name: string;
   color: string;
@@ -16,6 +16,8 @@ export function CatAvatar({
   ring?: string;
   /** Resolved photo URL (see usePhotoUrl); falls back to the initial. */
   photoUrl?: string | null;
+  /** Custom content for the round part instead of photoUrl (the crop preview). */
+  photo?: ReactNode;
   /** Small corner badge: lost mode or low battery (see catBadge). */
   badge?: { icon: IconName; color: string } | null;
 }) {
@@ -29,14 +31,14 @@ export function CatAvatar({
         style={{
           width: size, height: size, borderRadius: size / 2, backgroundColor: color,
           alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-          borderWidth: ring ? 3 : photoUrl ? 2 : 0, borderColor: ring ?? color,
+          borderWidth: ring ? 3 : photoUrl || photo ? 2 : 0, borderColor: ring ?? color,
         }}
       >
-        {photoUrl ? (
+        {photo ?? (photoUrl ? (
           <Image source={{ uri: photoUrl }} style={{ width: '100%', height: '100%' }} accessibilityIgnoresInvertColors />
         ) : (
           <Text style={{ color: '#fff', fontWeight: '800', fontSize: size * 0.42 }}>{name.slice(0, 1).toUpperCase()}</Text>
-        )}
+        ))}
       </View>
       {badge && (
         <View

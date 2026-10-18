@@ -4,8 +4,6 @@
  * Layout follows the "Clean Signal" design (08-edit-cat).
  */
 import { Ionicons } from '@expo/vector-icons';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -13,9 +11,10 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from
 import { REPORT_INTERVALS, useApp } from '../../src/AppProvider';
 import { CAT_COLORS, isOwner, type NightWatch } from '../../src/backend/types';
 import { CatSharingCard } from '../../src/components/CatSharingCard';
-import { Button, CatAvatar, ErrorText, Segmented } from '../../src/components/ui';
+import { Button, ErrorText, Segmented } from '../../src/components/ui';
 import { TimeField } from '../../src/components/TimeField';
 import { usePhotoUrl } from '../../src/components/usePhotoUrl';
+import { CatPhotoField } from '../../src/photo/CatPhotoField';
 import { ask, messageOf } from '../../src/dialogs';
 import { deviceTimezone } from '../../src/time';
 import { fonts, radius, space, useTheme } from '../../src/theme';
@@ -28,14 +27,6 @@ const NIGHT_INTERVALS = [
 
 type Key = 'photo' | 'save' | 'night' | 'delete';
 
-async function resizeForUpload(uri: string): Promise<string> {
-  const ctx = ImageManipulator.manipulate(uri);
-  ctx.resize({ width: 512 });
-  const image = await ctx.renderAsync();
-  const result = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
-  return result.uri;
-}
-
 /** Night window as 0..1 segments of the day, split at midnight when it wraps. */
 function nightSegments(startMin: number, endMin: number): [number, number][] {
   const s = startMin / 1440;
@@ -47,7 +38,7 @@ export default function EditCat() {
   const t = useTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { backend, cats, intervalS, setIntervalS, trackedCatId, setTrackedCatId, removeCatLocal } = useApp();
+  const { backend, cats, intervalS, setIntervalS, trackedCatId, setTrackedCatId, removeCatLocal, refresh } = useApp();
   const cat = cats.find((c) => c.id === id);
   const photoUrl = usePhotoUrl(cat?.photoPath);
 
@@ -81,17 +72,6 @@ export default function EditCat() {
     run('save', async () => {
       await backend.updateCat(cat.id, { name, color });
       router.back();
-    });
-
-  const pick = (source: 'library' | 'camera') =>
-    run('photo', async () => {
-      const perm =
-        source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) throw new Error(`Permission to use the ${source === 'camera' ? 'camera' : 'photo library'} was not granted.`);
-      const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 };
-      const res = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
-      if (res.canceled || !res.assets[0]) return;
-      await backend.setPhoto(cat.id, await resizeForUpload(res.assets[0].uri));
     });
 
   const saveNight = (night: NightWatch) => void run('night', () => backend.setNightWatch(cat.id, night, deviceTimezone()));
@@ -133,19 +113,21 @@ export default function EditCat() {
       />
 
       <View style={[styles.card, { backgroundColor: t.surface, paddingTop: 22, alignItems: 'center', gap: 16 }]}>
-        <View style={styles.avatarWrap}>
-          <CatAvatar name={name || cat.name} color={color} size={96} photoUrl={photoUrl} />
-          <View style={[styles.cameraBadge, { backgroundColor: t.primary, borderColor: t.surface }]}>
-            <Ionicons name="camera" size={16} color={t.primaryText} />
-          </View>
-        </View>
-        <View style={styles.row}>
-          <Button style={{ flex: 1 }} variant="secondary" title="Choose photo" icon="image-outline" busy={busy === 'photo'} onPress={() => void pick('library')} />
-          <Button style={{ flex: 1 }} variant="secondary" title="Take photo" icon="camera-outline" onPress={() => void pick('camera')} />
-        </View>
-        {cat.photoPath && <Button title="Remove photo" variant="ghost" onPress={() => void run('photo', () => backend.removePhoto(cat.id))} />}
+        <CatPhotoField
+          name={name || cat.name}
+          color={color}
+          photoUrl={photoUrl}
+          onPhoto={async (uri) => {
+            await backend.setPhoto(cat.id, uri);
+            await refresh();
+          }}
+          onRemove={() => void run('photo', async () => {
+            await backend.removePhoto(cat.id);
+            await refresh();
+          })}
+        />
         <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18, textAlign: 'center' }}>
-          Photos are resized and visible to everyone who sees this cat.
+          The circle is exactly what the avatar shows. Visible to everyone who sees this cat.
         </Text>
         <ErrorText>{errors.photo}</ErrorText>
       </View>
@@ -282,12 +264,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xl },
   scroll: { padding: space.lg, gap: 14, paddingBottom: space.xl * 2, maxWidth: 560, width: '100%', alignSelf: 'center' },
   card: { borderRadius: 24, padding: 18 },
-  avatarWrap: { width: 96, height: 108 },
-  cameraBadge: {
-    position: 'absolute', right: -4, bottom: -2, width: 36, height: 36, borderRadius: 18,
-    borderWidth: 3, alignItems: 'center', justifyContent: 'center',
-  },
-  row: { flexDirection: 'row', gap: 8, alignSelf: 'stretch' },
   rowAlign: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   label: { fontFamily: fonts.bodySemibold, fontSize: 13 },

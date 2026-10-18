@@ -5,13 +5,14 @@
  */
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, Text, View } from 'react-native';
 
 import { useApp } from '../AppProvider';
 import type { Cat, CatSitter, Household } from '../backend/types';
 import { ask, messageOf } from '../dialogs';
 import { shortDate } from '../time';
 import { fonts, radius, space, useTheme } from '../theme';
+import { HouseholdPicker } from './HouseholdPicker';
 import { prettyCode } from './HouseholdsCard';
 import { Button, ErrorText, Segmented } from './ui';
 
@@ -78,15 +79,6 @@ export function CatSharingCard({ cat }: { cat: Cat }) {
     await run(`rm-${s.userId}`, () => backend.removeCatSitter(cat.id, s.userId));
   };
 
-  const options: { id: string | null; name: string; detail: string }[] = [
-    { id: null, name: 'Private', detail: 'Only you (and cat sitters you invite)' },
-    ...households.map((h) => ({
-      id: h.id,
-      name: h.name,
-      detail: h.members.length === 1 ? 'Only you so far' : `${h.members.length} people see ${cat.name}`,
-    })),
-  ];
-
   return (
     <View style={[styles.card, { backgroundColor: t.surface }]}>
       <View style={styles.rowAlign}>
@@ -100,30 +92,14 @@ export function CatSharingCard({ cat }: { cat: Cat }) {
       </View>
 
       <Text style={[styles.label, { color: t.textMuted }]}>Household</Text>
-      <View>
-        {options.map((o) => {
-          const selected = (cat.householdId ?? null) === o.id;
-          return (
-            <Pressable
-              key={o.id ?? 'private'}
-              accessibilityRole="radio"
-              accessibilityState={{ selected, busy: busy === `hh-${o.id ?? 'private'}` }}
-              disabled={selected || busy !== null}
-              onPress={() => void moveTo(o.id)}
-              style={[styles.radioRow, { borderBottomColor: t.surfaceAlt }]}
-            >
-              <Ionicons name={o.id ? 'home-outline' : 'lock-closed-outline'} size={18} color={t.textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontFamily: fonts.bodySemibold, fontSize: 15 }} numberOfLines={1}>{o.name}</Text>
-                <Text style={{ color: t.textMuted, fontSize: 13 }}>{o.detail}</Text>
-              </View>
-              <View style={[styles.radio, { borderColor: selected ? t.text : t.border }]}>
-                {selected && <View style={[styles.radioDot, { backgroundColor: t.text }]} />}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      <HouseholdPicker
+        households={households}
+        value={cat.householdId ?? null}
+        onChange={(id) => void moveTo(id)}
+        catName={cat.name}
+        busyId={busy?.startsWith('hh-') ? (busy === 'hh-private' ? null : busy.slice(3)) : undefined}
+        disabled={busy !== null}
+      />
       <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>Create households and invite people in Settings.</Text>
 
       <Text style={[styles.label, { color: t.textMuted, marginTop: space.sm }]}>Cat sitters</Text>
@@ -176,9 +152,6 @@ const styles = StyleSheet.create({
   rowAlign: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   label: { fontFamily: fonts.bodySemibold, fontSize: 13 },
-  radioRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderBottomWidth: StyleSheet.hairlineWidth },
-  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 10, height: 10, borderRadius: 5 },
   codeBox: { borderRadius: radius.md, padding: space.md, gap: space.sm, alignItems: 'center' },
   code: { fontSize: 28, fontFamily: 'GeistMono_500Medium', letterSpacing: 4 },
 });

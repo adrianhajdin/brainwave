@@ -338,6 +338,7 @@ export default function CatScreen() {
           cursor={layer === 'route' ? cursor : null}
           zones={zones}
           heat={layer === 'heatmap' ? heat : undefined}
+          coverBottom={immersive ? height - sheetTop : 0}
           style={StyleSheet.absoluteFill}
         />
         {!immersive && (

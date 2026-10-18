@@ -2,24 +2,29 @@
  * Native map (iOS: Apple Maps, Android: Google Maps) - works in Expo Go.
  * Web uses CatMap.web.tsx instead (react-native-maps has no web support).
  *
- * Layers: home zones, heatmap glow, smoothed route with a soft halo, accuracy
+ * Layers: home zones, heatmap (native on Android, soft glow elsewhere), the
+ * route as hollow dots along the smoothed path, accuracy
  * halos, cat markers (photo + lost/battery badge) and the replay cursor.
  */
 import * as Location from 'expo-location';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Circle, Marker, Polyline, type Region } from 'react-native-maps';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import MapView, { Circle, Heatmap, Marker, type Region } from 'react-native-maps';
 
 import type { Cat } from '../backend/types';
-import { distanceM, regionFor, smoothTrack, type LatLng } from '../geo';
+import { distanceM, regionFor, resamplePath, smoothTrack, type LatLng } from '../geo';
 import { useTheme } from '../theme';
 import type { CatMapProps } from './CatMap.types';
-import { heatBlobs } from './heat';
+import { HEAT_GRADIENT, heatBlobs, heatPoints } from './heat';
 import { CatAvatar } from './ui';
 import { catBadge, usePhotoUrl } from './usePhotoUrl';
 
 /** Before we know where any cat (or this phone) is: the whole of the Netherlands. */
 const FALLBACK: Region = { latitude: 52.2, longitude: 5.3, latitudeDelta: 3.2, longitudeDelta: 3.2 };
+
+/** Route dots: distance between dot centres and dot radius, in screen pixels. */
+const DOT_SPACING_PX = 15;
+const DOT_RADIUS_PX = 4.5;
 
 /** In the live view of one cat, zones this close stay in the frame (the home around the garden). */
 const NEARBY_ZONE_M = 400;
@@ -36,6 +41,8 @@ const DARK_STYLE = [
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1a24' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
+
+const alphaHex = (a: number) => Math.round(Math.min(1, Math.max(0, a)) * 255).toString(16).padStart(2, '0');
 
 function CatMarker({ cat, onPress }: { cat: Cat; onPress?: () => void }) {
   const t = useTheme();
@@ -60,7 +67,7 @@ function CatMarker({ cat, onPress }: { cat: Cat; onPress?: () => void }) {
 }
 
 export function CatMap({
-  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, style,
+  cats, focusId, track, trackColor, cursor, zones, heat, onSelectCat, onLongPress, draftZone, coverBottom = 0, style,
 }: CatMapProps) {
   const t = useTheme();
   const ref = useRef<MapView>(null);
@@ -68,7 +75,10 @@ export function CatMap({
   const focus = focusId ? placed.find((c) => c.id === focusId) : undefined;
 
   const smooth = useMemo(() => (track && track.length > 1 ? smoothTrack(track) : []), [track]);
-  const blobs = useMemo(() => heatBlobs(heat ?? []), [heat]);
+  // Android (Google Maps) has a real heatmap layer; Apple Maps gets the soft glow.
+  const nativeHeat = Platform.OS === 'android';
+  const blobs = useMemo(() => (nativeHeat ? [] : heatBlobs(heat ?? [])), [heat, nativeHeat]);
+  const heatPts = useMemo(() => (nativeHeat ? heatPoints(heat ?? []) : []), [heat, nativeHeat]);
 
   // What the camera should show: one cat up close, or everything that is drawn.
   const frame = (): (LatLng & { radiusM?: number })[] => {
@@ -88,7 +98,13 @@ export function CatMap({
 
   const [initialRegion] = useState<Region>(() => regionFor(frame()) ?? FALLBACK);
   const [ready, setReady] = useState(false);
-  const shown = useRef<Region>(initialRegion);
+  const [shown, setShown] = useState<Region>(initialRegion);
+  const [heightPx, setHeightPx] = useState(400);
+
+  // The route as dots a fixed number of pixels apart, so it reads the same at
+  // every zoom level: recomputed when the map stops moving.
+  const metresPerPx = (shown.latitudeDelta * 111_320) / Math.max(1, heightPx);
+  const dots = useMemo(() => resamplePath(smooth, metresPerPx * DOT_SPACING_PX), [smooth, metresPerPx]);
 
   // Re-frame when the map is ready and when the set of positioned cats, the
   // focus, the layers or the draft zone change. Positions updating on their
@@ -101,13 +117,25 @@ export function CatMap({
     zones?.length ?? 0,
     heat?.length ?? 0,
     draftZone ? `${draftZone.lat},${draftZone.lng},${draftZone.radiusM}` : '',
+    coverBottom ? `${coverBottom}/${heightPx}` : '',
   ].join('|');
 
   useEffect(() => {
     if (!ready) return;
     const region = regionFor(frame());
     if (region) {
-      ref.current?.animateToRegion(region, 450);
+      // Grow the view and move it down so the framed area sits above the sheet.
+      const hidden = Math.min(0.7, Math.max(0, coverBottom / Math.max(1, heightPx)));
+      const grow = 1 / (1 - hidden);
+      ref.current?.animateToRegion(
+        {
+          latitude: region.latitude - (region.latitudeDelta * grow * hidden) / 2,
+          longitude: region.longitude,
+          latitudeDelta: region.latitudeDelta * grow,
+          longitudeDelta: region.longitudeDelta * grow,
+        },
+        450,
+      );
       return;
     }
     // Nothing to show yet: centre on this phone if location is already allowed.
@@ -134,7 +162,7 @@ export function CatMap({
   // Follow the focused cat when it walks out of view.
   useEffect(() => {
     if (!ready || !focus || smooth.length > 0 || heat?.length) return;
-    const r = shown.current;
+    const r = shown;
     const outside =
       Math.abs(focus.lastLat! - r.latitude) > r.latitudeDelta * 0.4 || Math.abs(focus.lastLng! - r.longitude) > r.longitudeDelta * 0.4;
     if (outside) ref.current?.animateCamera({ center: { latitude: focus.lastLat!, longitude: focus.lastLng! } }, { duration: 450 });
@@ -150,9 +178,8 @@ export function CatMap({
         style={StyleSheet.absoluteFill}
         initialRegion={initialRegion}
         onMapReady={() => setReady(true)}
-        onRegionChangeComplete={(r) => {
-          shown.current = r;
-        }}
+        onRegionChangeComplete={setShown}
+        onLayout={(e) => setHeightPx(e.nativeEvent.layout.height)}
         showsCompass={false}
         toolbarEnabled={false}
         showsUserLocation
@@ -195,15 +222,21 @@ export function CatMap({
           />
         )}
 
-        {smooth.length > 1 && (
-          <>
-            <Polyline coordinates={smooth.map((p) => ({ latitude: p.lat, longitude: p.lng }))} strokeColor={`${routeColor}40`} strokeWidth={10} lineCap="round" lineJoin="round" />
-            <Polyline coordinates={smooth.map((p) => ({ latitude: p.lat, longitude: p.lng }))} strokeColor={routeColor} strokeWidth={4} lineCap="round" lineJoin="round" />
-            <Marker coordinate={{ latitude: smooth[0]!.lat, longitude: smooth[0]!.lng }} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-              <View style={[styles.startDot, { borderColor: routeColor }]} />
-            </Marker>
-          </>
-        )}
+        {heatPts.length > 0 && <Heatmap points={heatPts} radius={40} opacity={0.85} gradient={HEAT_GRADIENT} />}
+
+        {/* Route: hollow dots with room in between, fading in from the oldest. */}
+        {dots.length > 1 &&
+          dots.map((p, i) => (
+            <Circle
+              key={`d${i}`}
+              center={{ latitude: p.lat, longitude: p.lng }}
+              radius={metresPerPx * DOT_RADIUS_PX}
+              strokeColor={`${routeColor}${alphaHex(0.35 + (0.65 * i) / (dots.length - 1))}`}
+              strokeWidth={2.5}
+              fillColor="transparent"
+              zIndex={2}
+            />
+          ))}
 
         {placed.map((c) => (
           <Fragment key={c.id}>
@@ -227,6 +260,5 @@ export function CatMap({
 const styles = StyleSheet.create({
   wrap: { overflow: 'hidden' },
   cursor: { width: 20, height: 20, borderRadius: 10, borderWidth: 5, backgroundColor: '#fff' },
-  startDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 3, backgroundColor: '#fff' },
   zoneLabel: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
 });

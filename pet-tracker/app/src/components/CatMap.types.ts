@@ -21,5 +21,7 @@ export interface CatMapProps {
   onLongPress?: (lat: number, lng: number) => void;
   /** Pending zone preview while editing. */
   draftZone?: { lat: number; lng: number; radiusM: number } | null;
+  /** Pixels at the bottom of the map hidden behind a sheet: framing keeps the cats above it. */
+  coverBottom?: number;
   style?: StyleProp<ViewStyle>;
 }

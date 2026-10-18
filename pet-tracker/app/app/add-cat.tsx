@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { useApp } from '../src/AppProvider';
-import { CAT_COLORS } from '../src/backend/types';
-import { Button, CatAvatar, ErrorText, SectionTitle, Segmented } from '../src/components/ui';
+import { CAT_COLORS, type Household } from '../src/backend/types';
+import { HouseholdPicker, defaultHousehold } from '../src/components/HouseholdPicker';
+import { Button, ErrorText, SectionTitle, Segmented } from '../src/components/ui';
 import { messageOf } from '../src/dialogs';
+import { CatPhotoField } from '../src/photo/CatPhotoField';
 import { fonts, radius, space, useTheme } from '../src/theme';
 
 type Source = 'phone' | 'collar';
@@ -24,10 +26,21 @@ export default function AddCat() {
   const [consent, setConsent] = useState(false);
   const [deviceUid, setDeviceUid] = useState('');
   const [claimCode, setClaimCode] = useState('');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [households, setHouseholds] = useState<Household[]>([]);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    void backend?.listHouseholds().then((h) => {
+      setHouseholds(h);
+      setHouseholdId(defaultHousehold(h));
+    }).catch(() => undefined);
+  }, [backend]);
+
   if (!backend) return null;
+  const catName = name.trim() || 'your cat';
 
   const input = [styles.input, { backgroundColor: t.surfaceAlt, color: t.text, borderColor: t.border }];
   const canSave =
@@ -45,6 +58,12 @@ export default function AddCat() {
         id = await backend.claimCollar(deviceUid, claimCode);
         if (name.trim()) await backend.updateCat(id, { name, color });
       }
+      // The cat exists now; a failing photo or household choice can be
+      // fixed from its edit screen, so they don't block opening it.
+      await Promise.allSettled([
+        photoUri ? backend.setPhoto(id, photoUri) : Promise.resolve(),
+        households.length > 0 ? backend.setCatHousehold(id, householdId) : Promise.resolve(),
+      ]);
       await refresh();
       router.replace({ pathname: '/cat/[id]', params: { id } });
     } catch (e) {
@@ -57,7 +76,7 @@ export default function AddCat() {
   return (
     <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
       <View style={styles.preview}>
-        <CatAvatar name={name || '?'} color={color} size={72} />
+        <CatPhotoField name={name} color={color} photoUrl={photoUri} onPhoto={setPhotoUri} onRemove={() => setPhotoUri(null)} />
       </View>
 
       <SectionTitle>Name</SectionTitle>
@@ -86,7 +105,18 @@ export default function AddCat() {
         ))}
       </View>
 
-      <SectionTitle>How will you track {name.trim() || 'your cat'}?</SectionTitle>
+      <SectionTitle>Who sees {catName}?</SectionTitle>
+      <View style={[styles.box, { backgroundColor: t.surface, borderColor: t.border, marginTop: 0, marginBottom: space.md, gap: 0, paddingVertical: space.xs }]}>
+        {households.length > 0 ? (
+          <HouseholdPicker households={households} value={householdId} onChange={setHouseholdId} catName={catName} />
+        ) : (
+          <Text style={{ color: t.textMuted, lineHeight: 20, paddingVertical: space.sm }}>
+            Only you. To share {catName}, create a household in Settings or invite a cat sitter from {catName}'s edit screen.
+          </Text>
+        )}
+      </View>
+
+      <SectionTitle>How will you track {catName}?</SectionTitle>
       <View style={styles.modes}>
         {(
           [
@@ -128,7 +158,7 @@ export default function AddCat() {
           >
             <Ionicons name={consent ? 'checkbox' : 'square-outline'} size={24} color={consent ? t.accent : t.textMuted} />
             <Text style={{ color: t.text, flex: 1, lineHeight: 20 }}>
-              The owner of this phone knows it shares their location with everyone in my household.
+              The owner of this phone knows it shares their location with everyone who sees this cat.
             </Text>
           </Pressable>
           <View style={styles.switchRow}>
@@ -184,7 +214,7 @@ export default function AddCat() {
 
 const styles = StyleSheet.create({
   scroll: { padding: space.xl, gap: space.sm, maxWidth: 560, width: '100%', alignSelf: 'center' },
-  preview: { alignItems: 'center', marginBottom: space.md },
+  preview: { alignItems: 'center', gap: space.sm, marginBottom: space.md },
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: 12, fontSize: 16, marginBottom: space.md },
   swatches: { flexDirection: 'row', gap: space.md, marginBottom: space.lg, flexWrap: 'wrap' },
   swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 3 },
