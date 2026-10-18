@@ -22,20 +22,18 @@ export function TrackerBanner({ onPress }: { onPress?: () => void }) {
     off: '',
   }[tracker.state];
   const problem = tracker.state === 'denied' || tracker.state === 'error';
-  const tone = problem ? t.danger : t.live;
   const bg = problem ? t.dangerSoft : t.liveSoft;
 
+  // The main area and the action are siblings: a button inside a button is
+  // invalid on the web and confusing for screen readers.
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${text}. Open ${name}`}
-      style={[styles.banner, { backgroundColor: bg }]}
-    >
-      <View style={[styles.pulse, { backgroundColor: problem ? t.danger : t.liveDot }]} />
-      <Text style={[styles.text, { color: t.text }]} numberOfLines={3}>
-        {text}
-      </Text>
+    <View style={[styles.banner, { backgroundColor: bg }]}>
+      <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${text}. Open ${name}`} style={styles.main}>
+        <View style={[styles.pulse, { backgroundColor: problem ? t.danger : t.liveDot }]} />
+        <Text style={[styles.text, { color: t.text }]} numberOfLines={3}>
+          {text}
+        </Text>
+      </Pressable>
       {tracker.state === 'denied' ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Open phone settings" onPress={() => void Linking.openSettings().catch(() => undefined)} hitSlop={8}>
           <Text style={[styles.action, { color: t.accent }]}>Settings</Text>
@@ -45,7 +43,7 @@ export function TrackerBanner({ onPress }: { onPress?: () => void }) {
           <Text style={[styles.action, { color: t.textMuted }]}>Stop</Text>
         </Pressable>
       )}
-    </Pressable>
+    </View>
   );
 }
 
@@ -54,6 +52,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: space.sm,
     borderRadius: radius.md, paddingVertical: space.sm, paddingHorizontal: space.md,
   },
+  main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm },
   pulse: { width: 10, height: 10, borderRadius: 5 },
   text: { flex: 1, fontFamily: fonts.bodyMedium },
   action: { fontFamily: fonts.bodySemibold, paddingLeft: space.sm },

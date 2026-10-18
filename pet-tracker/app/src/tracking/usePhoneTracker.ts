@@ -57,6 +57,14 @@ export function usePhoneTracker(
     let unlistenBg: (() => void) | null = null;
     let lastSentMs = 0;
     let inFlight = false;
+    let keptAwake = false;
+
+    // Only release a wake lock this effect actually took (the web version throws otherwise).
+    const releaseKeepAwake = () => {
+      if (!keptAwake) return;
+      keptAwake = false;
+      void deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => undefined);
+    };
 
     setStatus({ ...OFF, catId, state: 'starting', intervalS });
 
@@ -124,7 +132,12 @@ export function usePhoneTracker(
           setStatus({ ...OFF, catId, state: 'denied', error: 'Location permission was not granted.' });
           return;
         }
-        await activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => undefined);
+        await activateKeepAwakeAsync(KEEP_AWAKE_TAG)
+          .then(() => {
+            keptAwake = true;
+          })
+          .catch(() => undefined);
+        if (cancelled) return releaseKeepAwake();
         subscription = await Location.watchPositionAsync(
           { accuracy: Location.Accuracy.High, timeInterval: intervalS * 1000, distanceInterval: 0 },
           (loc) => void reportForeground(loc),
@@ -140,7 +153,7 @@ export function usePhoneTracker(
       cancelled = true;
       subscription?.remove();
       unlistenBg?.();
-      deactivateKeepAwake(KEEP_AWAKE_TAG);
+      releaseKeepAwake();
     };
   }, [backend, catId, catName, intervalS]);
 
