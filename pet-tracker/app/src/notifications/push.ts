@@ -18,7 +18,14 @@ let notificationsModule: NotificationsModule | null | undefined;
  */
 function notifications(): NotificationsModule | null {
   if (notificationsModule === undefined) {
-    notificationsModule = Platform.OS === 'web' || isExpoGo ? null : (require('expo-notifications') as NotificationsModule);
+    notificationsModule = null;
+    if (Platform.OS !== 'web' && !isExpoGo) {
+      try {
+        notificationsModule = require('expo-notifications') as NotificationsModule;
+      } catch {
+        // Native module missing (e.g. an Expo Go version we did not detect): run without push.
+      }
+    }
   }
   return notificationsModule;
 }
