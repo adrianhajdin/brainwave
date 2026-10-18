@@ -11,16 +11,25 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWi
 
 import { useApp } from '../../src/AppProvider';
 import { CatMap } from '../../src/components/CatMap';
-import { Button, ErrorText, Segmented } from '../../src/components/ui';
+import { Button, ErrorText, IconButton, Segmented } from '../../src/components/ui';
 import { messageOf } from '../../src/dialogs';
 import { fonts, radius, space, useTheme } from '../../src/theme';
 
+// Radius presets: 15-25 m fits a house (with garden), larger ones a street or area.
 const SIZES = [
+  { value: 15, label: '15 m' },
+  { value: 25, label: '25 m' },
   { value: 50, label: '50 m' },
   { value: 100, label: '100 m' },
   { value: 250, label: '250 m' },
-  { value: 500, label: '500 m' },
 ] as const;
+
+/** Fine-tuning range and step for the radius (the database accepts 10-5000 m). */
+const MIN_RADIUS_M = 10;
+const MAX_RADIUS_M = 500;
+const STEP_M = 5;
+/** Below this, indoor GPS error is about as large as the zone itself. */
+const SMALL_ZONE_M = 25;
 
 const SUGGESTED = ['Home', 'Garden', 'Neighbours', 'Holiday home'];
 
@@ -33,7 +42,7 @@ export default function NewZone() {
   const cat = cats.find((c) => c.id === catId);
 
   const [name, setName] = useState('Home');
-  const [radiusM, setRadiusM] = useState<number>(100);
+  const [radiusM, setRadiusM] = useState<number>(25);
   const [allCats, setAllCats] = useState(false);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -146,7 +155,31 @@ export default function NewZone() {
 
         <View style={styles.field}>
           <Text style={[styles.label, { color: t.textMuted }]}>Size</Text>
-          <Segmented options={SIZES} value={radiusM as 50 | 100 | 250 | 500} onChange={setRadiusM} />
+          <Segmented<number> options={SIZES} value={radiusM} onChange={setRadiusM} />
+          <View style={styles.stepper}>
+            <IconButton
+              icon="remove"
+              label="Make the zone smaller"
+              disabled={radiusM <= MIN_RADIUS_M}
+              onPress={() => setRadiusM((r) => Math.max(MIN_RADIUS_M, r - STEP_M))}
+            />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={{ color: t.text, fontFamily: fonts.display, fontSize: 20 }}>{radiusM} m radius</Text>
+              <Text style={{ color: t.textMuted, fontSize: 13 }}>{radiusM * 2} m across</Text>
+            </View>
+            <IconButton
+              icon="add"
+              label="Make the zone larger"
+              disabled={radiusM >= MAX_RADIUS_M}
+              onPress={() => setRadiusM((r) => Math.min(MAX_RADIUS_M, r + STEP_M))}
+            />
+          </View>
+          {radiusM < SMALL_ZONE_M && (
+            <Text style={{ color: t.textMuted, fontSize: 13, lineHeight: 18 }}>
+              GPS is often 10–30 m off indoors. You still only get a "left" alert once {cat.name} is clearly outside, but
+              the app may briefly show {cat.name} as outside while in the house.
+            </Text>
+          )}
         </View>
 
         <View style={styles.switchRow}>
@@ -182,4 +215,5 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { height: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, justifyContent: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 });
